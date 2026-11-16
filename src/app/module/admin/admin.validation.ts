@@ -11,3 +11,11 @@ export const listUsersSchema = z
   .strict();
 
 export type ListUsersQuery = z.infer<typeof listUsersSchema>;
+
+export const userIdSchema = z.uuid();
+
+export const updateUserRoleSchema = z.object({
+  role: z.enum(UserRole),
+}).strict();
+
+export type UpdateUserRoleInput = z.infer<typeof updateUserRoleSchema>;
