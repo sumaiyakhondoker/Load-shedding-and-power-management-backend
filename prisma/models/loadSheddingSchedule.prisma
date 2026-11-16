@@ -1,0 +1,28 @@
+enum ScheduleStatus {
+  DRAFT
+  PUBLISHED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model LoadSheddingSchedule {
+  id          String         @id @default(uuid()) @db.Uuid
+  areaId      String         @map("area_id") @db.Uuid
+  createdById String         @map("created_by_id") @db.Uuid
+  title       String         @db.VarChar(255)
+  reason      String?        @db.Text
+  startsAt    DateTime       @map("starts_at") @db.Timestamp(0)
+  endsAt      DateTime       @map("ends_at") @db.Timestamp(0)
+  status      ScheduleStatus @default(DRAFT)
+  createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt   DateTime       @updatedAt @map("updated_at") @db.Timestamp(0)
+  deletedAt   DateTime?      @map("deleted_at") @db.Timestamp(0)
+
+  area      Area @relation(fields: [areaId], references: [id])
+  createdBy User @relation("ScheduleCreator", fields: [createdById], references: [id])
+
+  @@index([areaId, startsAt])
+  @@index([createdById])
+  @@map("load_shedding_schedules")
+}

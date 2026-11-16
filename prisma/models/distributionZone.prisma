@@ -1,0 +1,12 @@
+model DistributionZone {
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String    @db.VarChar(255)
+  description String?   @db.Text
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamp(0)
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamp(0)
+
+  substations Substation[]
+
+  @@map("distribution_zones")
+}

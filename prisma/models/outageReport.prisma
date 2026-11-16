@@ -1,0 +1,43 @@
+enum OutageStatus {
+  REPORTED
+  UNDER_REVIEW
+  ASSIGNED
+  IN_PROGRESS
+  RESOLVED
+  REJECTED
+}
+
+enum OutagePriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model OutageReport {
+  id                   String         @id @default(uuid()) @db.Uuid
+  areaId               String         @map("area_id") @db.Uuid
+  reportedById         String         @map("reported_by_id") @db.Uuid
+  assignedTechnicianId String?        @map("assigned_technician_id") @db.Uuid
+  title                String         @db.VarChar(255)
+  description          String         @db.Text
+  status               OutageStatus   @default(REPORTED)
+  priority             OutagePriority @default(MEDIUM)
+  reportedAt           DateTime       @map("reported_at") @db.Timestamp(0)
+  assignedAt           DateTime?      @map("assigned_at") @db.Timestamp(0)
+  resolvedAt           DateTime?      @map("resolved_at") @db.Timestamp(0)
+  resolutionNote       String?        @map("resolution_note") @db.Text
+  createdAt            DateTime       @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt            DateTime       @updatedAt @map("updated_at") @db.Timestamp(0)
+  deletedAt            DateTime?      @map("deleted_at") @db.Timestamp(0)
+
+  area               Area      @relation(fields: [areaId], references: [id])
+  reportedBy         User      @relation("OutageReporter", fields: [reportedById], references: [id])
+  assignedTechnician User?     @relation("AssignedTechnician", fields: [assignedTechnicianId], references: [id])
+  payments           Payment[]
+
+  @@index([areaId, status])
+  @@index([reportedById])
+  @@index([assignedTechnicianId])
+  @@map("outage_reports")
+}

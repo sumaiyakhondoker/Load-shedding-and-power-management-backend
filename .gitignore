@@ -1,0 +1,31 @@
+node_modules
+# Keep environment variables out of version control
+.env
+
+/src/generated/prisma
+
+AGENTS.md
+README-FIRST.md
+docs/
+
+
+
+# Dependencies
+node_modules/
+
+# Build
+dist/
+generated/
+
+# Environment secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+
+.agents/
+.claude/
+.windsurf/
+skills-lock.json

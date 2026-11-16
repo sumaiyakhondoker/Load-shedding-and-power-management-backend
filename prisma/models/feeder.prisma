@@ -1,0 +1,15 @@
+model Feeder {
+  id           String    @id @default(uuid()) @db.Uuid
+  substationId String    @map("substation_id") @db.Uuid
+  name         String    @db.VarChar(255)
+  code         String    @db.VarChar(100)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamp(0)
+  deletedAt    DateTime? @map("deleted_at") @db.Timestamp(0)
+
+  substation Substation @relation(fields: [substationId], references: [id])
+  areas      Area[]
+
+  @@unique([substationId, code])
+  @@map("feeders")
+}

@@ -1,0 +1,30 @@
+enum UserRole {
+  ADMIN
+  TECHNICIAN
+  CUSTOMER
+}
+
+model User {
+  id           String    @id @default(uuid()) @db.Uuid
+  name         String    @db.VarChar(255)
+  email        String    @unique @db.VarChar(255)
+  passwordHash String?   @map("password_hash") @db.VarChar(255)
+  googleId     String?   @unique @map("google_id") @db.VarChar(255)
+  role         UserRole  @default(CUSTOMER)
+  phone        String?   @db.VarChar(30)
+  areaId       String?   @map("area_id") @db.Uuid
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamp(0)
+  deletedAt    DateTime? @map("deleted_at") @db.Timestamp(0)
+
+  area             Area?                  @relation(fields: [areaId], references: [id])
+  createdSchedules LoadSheddingSchedule[] @relation("ScheduleCreator")
+  reportedOutages  OutageReport[]         @relation("OutageReporter")
+  assignedOutages  OutageReport[]         @relation("AssignedTechnician")
+  payments         Payment[]
+  notifications    Notification[]
+  auditLogs        AuditLog[]
+
+  @@index([areaId])
+  @@map("users")
+}

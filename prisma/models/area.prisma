@@ -1,0 +1,17 @@
+model Area {
+  id        String    @id @default(uuid()) @db.Uuid
+  feederId  String    @map("feeder_id") @db.Uuid
+  name      String    @db.VarChar(255)
+  address   String?   @db.Text
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamp(0)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamp(0)
+
+  feeder    Feeder                 @relation(fields: [feederId], references: [id])
+  users     User[]
+  schedules LoadSheddingSchedule[]
+  reports   OutageReport[]
+
+  @@index([feederId])
+  @@map("areas")
+}
