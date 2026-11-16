@@ -1,9 +1,13 @@
 
 import cookieParser from "cookie-parser";
 import cors from "cors";
-import express, { type Application, type Request, type Response } from "express";
+import express, { type Application } from "express";
 import helmet from "helmet";
 import { rateLimit } from "express-rate-limit";
+import { globalErrorHandler } from "./app/middleware/globalErrorHandler";
+import { notFound } from "./app/middleware/notFound";
+import { AppError } from "./app/utils/AppError";
+import { sendResponse } from "./app/utils/sendResponse";
 
 const app: Application = express();
 
@@ -27,6 +31,7 @@ app.use(
     limit: 100,
     standardHeaders: "draft-8",
     legacyHeaders: false,
+    handler: (req, res, next) => next(new AppError(429, "Too many requests")),
   })
 );
 
@@ -34,12 +39,18 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-app.get("/", (req: Request, res: Response) => {
-  res.send("Hello from Load Shedding & Power Management!");
+app.get("/", (req, res) => {
+  sendResponse({
+    res,
+    statusCode: 200,
+    message: "Welcome to Load Shedding & Power Management",
+    data: null,
+  });
 });
 
 // Module routes will be added here later.
 
-// 404 and global error handlers will be added later.
+app.use(notFound);
+app.use(globalErrorHandler);
 
 export default app;
