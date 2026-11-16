@@ -7,6 +7,7 @@ import { rateLimit } from "express-rate-limit";
 import { globalErrorHandler } from "./app/middleware/globalErrorHandler";
 import { notFound } from "./app/middleware/notFound";
 import { AuthRoutes } from "./app/module/auth/auth.route";
+import { UserRoutes } from "./app/module/user/user.route";
 import { AppError } from "./app/utils/AppError";
 import { sendResponse } from "./app/utils/sendResponse";
 
@@ -50,6 +51,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/v1/auth", AuthRoutes);
+app.use("/api/v1/users", UserRoutes);
 
 app.use(notFound);
 app.use(globalErrorHandler);
