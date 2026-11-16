@@ -6,6 +6,7 @@ import helmet from "helmet";
 import { rateLimit } from "express-rate-limit";
 import { globalErrorHandler } from "./app/middleware/globalErrorHandler";
 import { notFound } from "./app/middleware/notFound";
+import { AuthRoutes } from "./app/module/auth/auth.route";
 import { AppError } from "./app/utils/AppError";
 import { sendResponse } from "./app/utils/sendResponse";
 
@@ -48,7 +49,7 @@ app.get("/", (req, res) => {
   });
 });
 
-// Module routes will be added here later.
+app.use("/api/v1/auth", AuthRoutes);
 
 app.use(notFound);
 app.use(globalErrorHandler);
