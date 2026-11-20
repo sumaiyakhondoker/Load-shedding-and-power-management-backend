@@ -8,7 +8,15 @@ import { listUsersSchema, userIdSchema, type UpdateUserRoleInput } from "./admin
 const listUsers = catchAsync(async (req, res) => {
   const query = listUsersSchema.parse(req.query);
   const result = await AdminService.listUsers(query);
-  sendResponse({ res, statusCode: 200, message: "Users retrieved successfully!!", data: result });
+
+  let resMessage
+   if(result.users.length > 0){
+    // console.log('length: ',result.users.length);
+   resMessage = "Users retrieved successfully!!"
+  }else{
+ resMessage = "No users found according to your searching."
+  }
+  sendResponse({ res, statusCode: 200, message:resMessage, data: result });
 });
 
 const updateUserRole = catchAsync(async (req, res) => {

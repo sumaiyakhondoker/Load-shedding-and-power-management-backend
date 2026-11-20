@@ -8,3 +8,13 @@ export const createDistributionZoneSchema = z
   .strict();
 
 export type CreateDistributionZoneInput = z.infer<typeof createDistributionZoneSchema>;
+
+export const listDistributionZonesSchema = z
+  .object({
+    page: z.coerce.number().int().min(1).max(100000).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(10),
+    search: z.string().trim().min(1).max(100).optional(),
+  })
+  .strict();
+
+export type ListDistributionZonesQuery = z.infer<typeof listDistributionZonesSchema>;

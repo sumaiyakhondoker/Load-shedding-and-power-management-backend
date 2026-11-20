@@ -6,6 +6,7 @@ import { createDistributionZoneSchema } from "./distributionZone.validation";
 
 const router = Router();
 
+router.get("/", DistributionZoneController.list);
 router.post(
   "/",
   auth("ADMIN"),
