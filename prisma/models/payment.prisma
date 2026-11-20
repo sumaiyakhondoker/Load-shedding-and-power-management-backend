@@ -1,17 +1,3 @@
-enum PaymentGateway {
-  BKASH
-  STRIPE
-  SSLCOMMERZ
-}
-
-enum PaymentStatus {
-  PENDING
-  PAID
-  FAILED
-  CANCELLED
-  REFUNDED
-}
-
 model Payment {
   id                   String         @id @default(uuid()) @db.Uuid
   userId               String         @map("user_id") @db.Uuid

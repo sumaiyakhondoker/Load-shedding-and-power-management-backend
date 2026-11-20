@@ -47,7 +47,7 @@ export const auth = (...allowedRoles: UserRole[]): RequestHandler => {
     }
 
     if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
-      throw new AppError(403, "Forbidden");
+      throw new AppError(403, "Forbidden: you have no permission to access this route.");
     }
 
     req.user = { id: user.id, role: user.role };

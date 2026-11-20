@@ -10,9 +10,15 @@ export const validateRequest = (schema: ZodType): RequestHandler => {
         success: false,
         message: "Validation failed",
         errors: result.error.issues.map((issue) => ({
-          field: issue.path.join("."),
-          message: issue.message,
-        })),
+  field:
+    issue.code === "unrecognized_keys"
+      ? issue.keys.join(", ")
+      : issue.path.join("."),
+  message:
+    issue.code === "unrecognized_keys"
+      ? "This field is not allowed"
+      : issue.message,
+})),
       });
       return;
     }

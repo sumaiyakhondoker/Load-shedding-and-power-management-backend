@@ -1,11 +1,3 @@
-enum ScheduleStatus {
-  DRAFT
-  PUBLISHED
-  IN_PROGRESS
-  COMPLETED
-  CANCELLED
-}
-
 model LoadSheddingSchedule {
   id          String         @id @default(uuid()) @db.Uuid
   areaId      String         @map("area_id") @db.Uuid

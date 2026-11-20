@@ -23,7 +23,7 @@ const register = async (input: RegisterInput) => {
   const saltRounds = Number(config.bcrypt_salt_rounds) || 10;
   const passwordHash = await bcrypt.hash(input.password, saltRounds);
   const user = await prisma.user.create({
-    data: { name: input.name, email, passwordHash },
+    data: { name: input.name, email, passwordHash, role: input.role ?? "CUSTOMER" },
     select: publicUserFields,
   });
 
