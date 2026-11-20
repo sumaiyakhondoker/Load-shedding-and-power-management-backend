@@ -49,7 +49,7 @@ const updateUserRole = async (
     throw new AppError(400, "Cannot change your own role");
   }
 
-  return prisma.$transaction(async (tx) => {
+  const result = prisma.$transaction(async (tx) => {
     const targetUser = await tx.user.findFirst({
       where: { id: targetUserId, deletedAt: null },
       select: { id: true, role: true },
@@ -85,6 +85,8 @@ const updateUserRole = async (
 
     return user;
   });
+
+  return result
 };
 
 export const AdminService = { listUsers, updateUserRole };

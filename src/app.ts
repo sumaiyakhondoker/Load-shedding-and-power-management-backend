@@ -8,9 +8,11 @@ import { globalErrorHandler } from "./app/middleware/globalErrorHandler";
 import { notFound } from "./app/middleware/notFound";
 import { AdminRoutes } from "./app/module/admin/admin.route";
 import { AuthRoutes } from "./app/module/auth/auth.route";
+
 import { UserRoutes } from "./app/module/user/user.route";
 import { AppError } from "./app/utils/AppError";
 import { sendResponse } from "./app/utils/sendResponse";
+import { DistributionZoneRoutes } from "./app/module/distributionZone/distributionZone.route";
 
 const app: Application = express();
 
@@ -54,6 +56,7 @@ app.get("/", (req, res) => {
 app.use("/api/v1/auth", AuthRoutes);
 app.use("/api/v1/users", UserRoutes);
 app.use("/api/v1/admin", AdminRoutes);
+app.use("/api/v1/distribution-zones", DistributionZoneRoutes);
 
 app.use(notFound);
 app.use(globalErrorHandler);
