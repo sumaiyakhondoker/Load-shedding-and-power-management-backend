@@ -13,7 +13,7 @@ const listUsers = catchAsync(async (req, res) => {
 	const query = listUsersSchema.parse(req.query);
 	const result = await AdminService.listUsers(query);
 
-	let resMessage;
+	let resMessage: string;
 	if (result.users.length > 0) {
 		// console.log('length: ',result.users.length);
 		resMessage = "Users retrieved successfully!!";

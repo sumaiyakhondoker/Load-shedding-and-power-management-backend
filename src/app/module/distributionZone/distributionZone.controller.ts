@@ -13,7 +13,7 @@ import {
 const list = catchAsync(async (req, res) => {
 	const query = listDistributionZonesSchema.parse(req.query);
 	const result = await DistributionZoneService.list(query);
-	let resMessage:string;
+	let resMessage: string;
 	if (result.zones.length > 0) {
 		// console.log('length: ',result.zones.length);
 		resMessage = "Distribution zones retrieved";

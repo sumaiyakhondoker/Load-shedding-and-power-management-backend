@@ -30,23 +30,19 @@ export const globalErrorHandler: ErrorRequestHandler = (
 
 	if (error instanceof Prisma.PrismaClientKnownRequestError) {
 		if (error.code === "P2002") {
-			res
-				.status(409)
-				.json({
-					success: false,
-					message: "Duplicate value already exists",
-					errors: [],
-				});
+			res.status(409).json({
+				success: false,
+				message: "Duplicate value already exists",
+				errors: [],
+			});
 			return;
 		}
 		if (error.code === "P2003") {
-			res
-				.status(400)
-				.json({
-					success: false,
-					message: "Related record constraint failed",
-					errors: [],
-				});
+			res.status(400).json({
+				success: false,
+				message: "Related record constraint failed",
+				errors: [],
+			});
 			return;
 		}
 		if (error.code === "P2025") {

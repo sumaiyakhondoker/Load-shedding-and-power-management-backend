@@ -1,5 +1,5 @@
 import type { RequestHandler } from "express";
-import jwt from "jsonwebtoken";
+import jwt, { type JwtPayload } from "jsonwebtoken";
 import { z } from "zod";
 import type { UserRole } from "../../../generated/prisma/enums";
 import config from "../../config";
@@ -26,7 +26,7 @@ export const auth = (...allowedRoles: UserRole[]): RequestHandler => {
 			throw new Error("JWT access secret is missing");
 		}
 
-		let decoded;
+		let decoded: string | JwtPayload;
 		try {
 			decoded = jwt.verify(token, config.jwt_access_secret);
 		} catch {
