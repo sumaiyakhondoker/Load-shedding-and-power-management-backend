@@ -18,3 +18,13 @@ export const listDistributionZonesSchema = z
   .strict();
 
 export type ListDistributionZonesQuery = z.infer<typeof listDistributionZonesSchema>;
+
+export const distributionZoneIdSchema = z.uuid();
+
+export const updateDistributionZoneSchema = createDistributionZoneSchema
+  .partial()
+  .refine((data) => Object.keys(data).length > 0, {
+    message: "At least one field is required",
+  });
+
+export type UpdateDistributionZoneInput = z.infer<typeof updateDistributionZoneSchema>;

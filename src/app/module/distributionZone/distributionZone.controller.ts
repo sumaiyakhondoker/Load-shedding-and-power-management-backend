@@ -3,7 +3,12 @@ import { AppError } from "../../utils/AppError";
 import { catchAsync } from "../../utils/catchAsync";
 import { sendResponse } from "../../utils/sendResponse";
 import { DistributionZoneService } from "./distributionZone.service";
-import { listDistributionZonesSchema, type CreateDistributionZoneInput } from "./distributionZone.validation";
+import {
+  distributionZoneIdSchema,
+  listDistributionZonesSchema,
+  type CreateDistributionZoneInput,
+  type UpdateDistributionZoneInput,
+} from "./distributionZone.validation";
 
 const list = catchAsync(async (req, res) => {
   const query = listDistributionZonesSchema.parse(req.query);
@@ -30,7 +35,22 @@ const create = catchAsync(async (req, res) => {
   sendResponse({ res, statusCode: 201, message: "Distribution zone created", data: zone });
 });
 
-export const DistributionZoneController: { list: RequestHandler; create: RequestHandler } = {
+const update = catchAsync(async (req, res) => {
+  if (!req.user) {
+    throw new AppError(401, "Authentication required");
+  }
+
+  const zoneId = distributionZoneIdSchema.parse(req.params.id);
+  const zone = await DistributionZoneService.update(
+    req.user.id,
+    zoneId,
+    req.body as UpdateDistributionZoneInput
+  );
+  sendResponse({ res, statusCode: 200, message: "Distribution zone updated", data: zone });
+});
+
+export const DistributionZoneController: { list: RequestHandler; create: RequestHandler; update: RequestHandler } = {
   list,
   create,
+  update
 };

@@ -1,5 +1,6 @@
 import { prisma } from "../../lib/prisma";
-import type { CreateDistributionZoneInput, ListDistributionZonesQuery } from "./distributionZone.validation";
+import { AppError } from "../../utils/AppError";
+import type { CreateDistributionZoneInput, ListDistributionZonesQuery, UpdateDistributionZoneInput } from "./distributionZone.validation";
 
 const list = async (query: ListDistributionZonesQuery) => {
   const where = {
@@ -42,4 +43,32 @@ const create = async (actorId: string, input: CreateDistributionZoneInput) => {
   });
 };
 
-export const DistributionZoneService = { list, create };
+const update = async (actorId: string, zoneId: string, input: UpdateDistributionZoneInput) => {
+  return prisma.$transaction(async (tx) => {
+    const existingZone = await tx.distributionZone.findFirst({
+      where: { id: zoneId, deletedAt: null },
+    });
+    if (!existingZone) {
+      throw new AppError(404, "Distribution zone not found");
+    }
+
+    const zone = await tx.distributionZone.update({
+      where: { id: zoneId },
+      data: input,
+    });
+
+    await tx.auditLog.create({
+      data: {
+        actorId,
+        action: "DISTRIBUTION_ZONE_UPDATED",
+        entityType: "DISTRIBUTION_ZONE",
+        entityId: zone.id,
+        details: { changes: input },
+      },
+    });
+
+    return zone;
+  });
+};
+
+export const DistributionZoneService = { list, create, update };
