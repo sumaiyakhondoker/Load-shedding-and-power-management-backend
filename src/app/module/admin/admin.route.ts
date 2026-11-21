@@ -7,6 +7,11 @@ import { updateUserRoleSchema } from "./admin.validation";
 const router = Router();
 
 router.get("/users", auth("ADMIN"), AdminController.listUsers);
-router.patch("/users/:id/role", auth("ADMIN"), validateRequest(updateUserRoleSchema), AdminController.updateUserRole);
+router.patch(
+	"/users/:id/role",
+	auth("ADMIN"),
+	validateRequest(updateUserRoleSchema),
+	AdminController.updateUserRole,
+);
 
 export const AdminRoutes: RouterType = router;

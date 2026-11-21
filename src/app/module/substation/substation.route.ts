@@ -6,6 +6,11 @@ import { createSubstationSchema } from "./substation.validation";
 
 const router = Router();
 
-router.post("/", auth("ADMIN"), validateRequest(createSubstationSchema), SubstationController.create);
+router.post(
+	"/",
+	auth("ADMIN"),
+	validateRequest(createSubstationSchema),
+	SubstationController.create,
+);
 
 export const SubstationRoutes: RouterType = router;

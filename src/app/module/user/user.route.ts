@@ -7,6 +7,11 @@ import { updateProfileSchema } from "./user.validation";
 const router = Router();
 
 router.get("/me", auth(), UserController.getMe);
-router.patch("/me", auth(), validateRequest(updateProfileSchema), UserController.updateMe);
+router.patch(
+	"/me",
+	auth(),
+	validateRequest(updateProfileSchema),
+	UserController.updateMe,
+);
 
 export const UserRoutes: RouterType = router;

@@ -1,4 +1,3 @@
-
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express, { type Application } from "express";
@@ -22,23 +21,23 @@ const allowedOrigins = ["http://localhost:3000"];
 app.use(helmet());
 
 app.use(
-  cors({
-    origin: allowedOrigins,
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
+	cors({
+		origin: allowedOrigins,
+		credentials: true,
+		methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+		allowedHeaders: ["Content-Type", "Authorization"],
+	}),
 );
 
 app.use(
-  "/api",
-  rateLimit({
-    windowMs: 15 * 60 * 1000,
-    limit: 100,
-    standardHeaders: "draft-8",
-    legacyHeaders: false,
-    handler: (req, res, next) => next(new AppError(429, "Too many requests")),
-  })
+	"/api",
+	rateLimit({
+		windowMs: 15 * 60 * 1000,
+		limit: 100,
+		standardHeaders: "draft-8",
+		legacyHeaders: false,
+		handler: (req, res, next) => next(new AppError(429, "Too many requests")),
+	}),
 );
 
 app.use(express.json());
@@ -46,12 +45,12 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 app.get("/", (req, res) => {
-  sendResponse({
-    res,
-    statusCode: 200,
-    message: "Welcome to Load Shedding & Power Management",
-    data: null,
-  });
+	sendResponse({
+		res,
+		statusCode: 200,
+		message: "Welcome to Load Shedding & Power Management",
+		data: null,
+	});
 });
 
 app.use("/api/v1/auth", AuthRoutes);

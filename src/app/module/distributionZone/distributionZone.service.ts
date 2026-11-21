@@ -1,122 +1,155 @@
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../utils/AppError";
-import type { CreateDistributionZoneInput, ListDistributionZonesQuery, UpdateDistributionZoneInput } from "./distributionZone.validation";
+import type {
+	CreateDistributionZoneInput,
+	ListDistributionZonesQuery,
+	UpdateDistributionZoneInput,
+} from "./distributionZone.validation";
 
 const list = async (query: ListDistributionZonesQuery) => {
-  const where = {
-    deletedAt: null,
-    name: query.search ? { contains: query.search, mode: "insensitive" as const } : undefined,
-  };
+	const where = {
+		deletedAt: null,
+		name: query.search
+			? { contains: query.search, mode: "insensitive" as const }
+			: undefined,
+	};
 
-  const [zones, total] = await prisma.$transaction([
-    prisma.distributionZone.findMany({
-      where,
-      select: { id: true, name: true, description: true, createdAt: true, updatedAt: true },
-      orderBy: { createdAt: "desc" },
-      skip: (query.page - 1) * query.limit,
-      take: query.limit,
-    }),
-    prisma.distributionZone.count({ where }),
-  ]);
+	const [zones, total] = await prisma.$transaction([
+		prisma.distributionZone.findMany({
+			where,
+			select: {
+				id: true,
+				name: true,
+				description: true,
+				createdAt: true,
+				updatedAt: true,
+			},
+			orderBy: { createdAt: "desc" },
+			skip: (query.page - 1) * query.limit,
+			take: query.limit,
+		}),
+		prisma.distributionZone.count({ where }),
+	]);
 
-  return {
-    zones,
-    meta: { page: query.page, limit: query.limit, total, totalPages: Math.ceil(total / query.limit) },
-  };
+	return {
+		zones,
+		meta: {
+			page: query.page,
+			limit: query.limit,
+			total,
+			totalPages: Math.ceil(total / query.limit),
+		},
+	};
 };
 
 const getById = async (zoneId: string) => {
-  const zone = await prisma.distributionZone.findFirst({
-    where: { id: zoneId, deletedAt: null },
-    select: { id: true, name: true, description: true, createdAt: true, updatedAt: true },
-  });
-  if (!zone) {
-    throw new AppError(404, "Distribution zone not found");
-  }
+	const zone = await prisma.distributionZone.findFirst({
+		where: { id: zoneId, deletedAt: null },
+		select: {
+			id: true,
+			name: true,
+			description: true,
+			createdAt: true,
+			updatedAt: true,
+		},
+	});
+	if (!zone) {
+		throw new AppError(404, "Distribution zone not found");
+	}
 
-  return zone;
+	return zone;
 };
 
 const create = async (actorId: string, input: CreateDistributionZoneInput) => {
-  return prisma.$transaction(async (tx) => {
-    const zone = await tx.distributionZone.create({ data: input });
+	return prisma.$transaction(async (tx) => {
+		const zone = await tx.distributionZone.create({ data: input });
 
-    await tx.auditLog.create({
-      data: {
-        actorId,
-        action: "DISTRIBUTION_ZONE_CREATED",
-        entityType: "DISTRIBUTION_ZONE",
-        entityId: zone.id,
-        details: { name: zone.name },
-      },
-    });
+		await tx.auditLog.create({
+			data: {
+				actorId,
+				action: "DISTRIBUTION_ZONE_CREATED",
+				entityType: "DISTRIBUTION_ZONE",
+				entityId: zone.id,
+				details: { name: zone.name },
+			},
+		});
 
-    return zone;
-  });
+		return zone;
+	});
 };
 
-const update = async (actorId: string, zoneId: string, input: UpdateDistributionZoneInput) => {
-  return prisma.$transaction(async (tx) => {
-    const existingZone = await tx.distributionZone.findFirst({
-      where: { id: zoneId, deletedAt: null },
-    });
-    if (!existingZone) {
-      throw new AppError(404, "Distribution zone not found");
-    }
+const update = async (
+	actorId: string,
+	zoneId: string,
+	input: UpdateDistributionZoneInput,
+) => {
+	return prisma.$transaction(async (tx) => {
+		const existingZone = await tx.distributionZone.findFirst({
+			where: { id: zoneId, deletedAt: null },
+		});
+		if (!existingZone) {
+			throw new AppError(404, "Distribution zone not found");
+		}
 
-    const zone = await tx.distributionZone.update({
-      where: { id: zoneId },
-      data: input,
-    });
+		const zone = await tx.distributionZone.update({
+			where: { id: zoneId },
+			data: input,
+		});
 
-    await tx.auditLog.create({
-      data: {
-        actorId,
-        action: "DISTRIBUTION_ZONE_UPDATED",
-        entityType: "DISTRIBUTION_ZONE",
-        entityId: zone.id,
-        details: { changes: input },
-      },
-    });
+		await tx.auditLog.create({
+			data: {
+				actorId,
+				action: "DISTRIBUTION_ZONE_UPDATED",
+				entityType: "DISTRIBUTION_ZONE",
+				entityId: zone.id,
+				details: { changes: input },
+			},
+		});
 
-    return zone;
-  });
+		return zone;
+	});
 };
 
 const remove = async (actorId: string, zoneId: string) => {
-  return prisma.$transaction(async (tx) => {
-    const existingZone = await tx.distributionZone.findFirst({
-      where: { id: zoneId, deletedAt: null },
-    });
-    if (!existingZone) {
-      throw new AppError(404, "Distribution zone not found");
-    }
+	return prisma.$transaction(async (tx) => {
+		const existingZone = await tx.distributionZone.findFirst({
+			where: { id: zoneId, deletedAt: null },
+		});
+		if (!existingZone) {
+			throw new AppError(404, "Distribution zone not found");
+		}
 
-    const activeSubstation = await tx.substation.findFirst({
-      where: { zoneId, deletedAt: null },
-      select: { id: true },
-    });
-    if (activeSubstation) {
-      throw new AppError(409, "Cannot delete a zone with active substations");
-    }
+		const activeSubstation = await tx.substation.findFirst({
+			where: { zoneId, deletedAt: null },
+			select: { id: true },
+		});
+		if (activeSubstation) {
+			throw new AppError(409, "Cannot delete a zone with active substations");
+		}
 
-    const zone = await tx.distributionZone.update({
-      where: { id: zoneId },
-      data: { deletedAt: new Date() },
-    });
+		const zone = await tx.distributionZone.update({
+			where: { id: zoneId },
+			data: { deletedAt: new Date() },
+		});
 
-    await tx.auditLog.create({
-      data: {
-        actorId,
-        action: "DISTRIBUTION_ZONE_DELETED",
-        entityType: "DISTRIBUTION_ZONE",
-        entityId: zone.id,
-        details: { name: zone.name },
-      },
-    });
+		await tx.auditLog.create({
+			data: {
+				actorId,
+				action: "DISTRIBUTION_ZONE_DELETED",
+				entityType: "DISTRIBUTION_ZONE",
+				entityId: zone.id,
+				details: { name: zone.name },
+			},
+		});
 
-    return zone;
-  });
+		return zone;
+	});
 };
 
-export const DistributionZoneService = { list, getById, create, update, remove };
+export const DistributionZoneService = {
+	list,
+	getById,
+	create,
+	update,
+	remove,
+};

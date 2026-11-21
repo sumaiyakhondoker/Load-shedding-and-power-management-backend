@@ -5,16 +5,29 @@ import type { LoginInput, RegisterInput } from "./auth.interface";
 import { AuthService } from "./auth.service";
 
 const register = catchAsync(async (req, res) => {
-  const result = await AuthService.register(req.body as RegisterInput);
-  sendResponse({ res, statusCode: 201, message: "Registration successful", data: result });
+	const result = await AuthService.register(req.body as RegisterInput);
+	sendResponse({
+		res,
+		statusCode: 201,
+		message: "Registration successful",
+		data: result,
+	});
 });
 
 const login = catchAsync(async (req, res) => {
-  const result = await AuthService.login(req.body as LoginInput);
-  sendResponse({ res, statusCode: 200, message: "Login successful", data: result });
+	const result = await AuthService.login(req.body as LoginInput);
+	sendResponse({
+		res,
+		statusCode: 200,
+		message: "Login successful",
+		data: result,
+	});
 });
 
-export const AuthController: { register: RequestHandler; login: RequestHandler } = {
-  register,
-  login,
+export const AuthController: {
+	register: RequestHandler;
+	login: RequestHandler;
+} = {
+	register,
+	login,
 };
