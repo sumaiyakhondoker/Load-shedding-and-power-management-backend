@@ -23,6 +23,12 @@ const list = catchAsync(async (req, res) => {
   sendResponse({ res, statusCode: 200, message: resMessage, data: result });
 });
 
+const getById = catchAsync(async (req, res) => {
+  const zoneId = distributionZoneIdSchema.parse(req.params.id);
+  const zone = await DistributionZoneService.getById(zoneId);
+  sendResponse({ res, statusCode: 200, message: "Distribution zone details retrieved", data: zone });
+});
+
 const create = catchAsync(async (req, res) => {
   if (!req.user) {
     throw new AppError(401, "Authentication required");
@@ -49,8 +55,9 @@ const update = catchAsync(async (req, res) => {
   sendResponse({ res, statusCode: 200, message: "Distribution zone updated", data: zone });
 });
 
-export const DistributionZoneController: { list: RequestHandler; create: RequestHandler; update: RequestHandler } = {
+export const DistributionZoneController: { list: RequestHandler; getById: RequestHandler; create: RequestHandler; update: RequestHandler } = {
   list,
+  getById,
   create,
   update
 };

@@ -25,6 +25,18 @@ const list = async (query: ListDistributionZonesQuery) => {
   };
 };
 
+const getById = async (zoneId: string) => {
+  const zone = await prisma.distributionZone.findFirst({
+    where: { id: zoneId, deletedAt: null },
+    select: { id: true, name: true, description: true, createdAt: true, updatedAt: true },
+  });
+  if (!zone) {
+    throw new AppError(404, "Distribution zone not found");
+  }
+
+  return zone;
+};
+
 const create = async (actorId: string, input: CreateDistributionZoneInput) => {
   return prisma.$transaction(async (tx) => {
     const zone = await tx.distributionZone.create({ data: input });
@@ -71,4 +83,4 @@ const update = async (actorId: string, zoneId: string, input: UpdateDistribution
   });
 };
 
-export const DistributionZoneService = { list, create, update };
+export const DistributionZoneService = { list, getById, create, update };

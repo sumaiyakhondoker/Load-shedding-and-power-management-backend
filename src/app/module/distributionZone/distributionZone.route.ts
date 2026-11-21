@@ -7,6 +7,7 @@ import { createDistributionZoneSchema, updateDistributionZoneSchema } from "./di
 const router = Router();
 
 router.get("/", DistributionZoneController.list);
+router.get("/:id", DistributionZoneController.getById);
 router.post(
   "/",
   auth("ADMIN"),
