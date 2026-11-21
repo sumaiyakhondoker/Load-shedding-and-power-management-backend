@@ -55,9 +55,20 @@ const update = catchAsync(async (req, res) => {
   sendResponse({ res, statusCode: 200, message: "Distribution zone updated", data: zone });
 });
 
-export const DistributionZoneController: { list: RequestHandler; getById: RequestHandler; create: RequestHandler; update: RequestHandler } = {
+const remove = catchAsync(async (req, res) => {
+  if (!req.user) {
+    throw new AppError(401, "Authentication required");
+  }
+
+  const zoneId = distributionZoneIdSchema.parse(req.params.id);
+  const zone = await DistributionZoneService.remove(req.user.id, zoneId);
+  sendResponse({ res, statusCode: 200, message: "Distribution zone deleted", data: zone });
+});
+
+export const DistributionZoneController: { list: RequestHandler; getById: RequestHandler; create: RequestHandler; update: RequestHandler; remove: RequestHandler } = {
   list,
   getById,
   create,
-  update
+  update,
+  remove,
 };

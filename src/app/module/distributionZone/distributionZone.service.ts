@@ -83,4 +83,40 @@ const update = async (actorId: string, zoneId: string, input: UpdateDistribution
   });
 };
 
-export const DistributionZoneService = { list, getById, create, update };
+const remove = async (actorId: string, zoneId: string) => {
+  return prisma.$transaction(async (tx) => {
+    const existingZone = await tx.distributionZone.findFirst({
+      where: { id: zoneId, deletedAt: null },
+    });
+    if (!existingZone) {
+      throw new AppError(404, "Distribution zone not found");
+    }
+
+    const activeSubstation = await tx.substation.findFirst({
+      where: { zoneId, deletedAt: null },
+      select: { id: true },
+    });
+    if (activeSubstation) {
+      throw new AppError(409, "Cannot delete a zone with active substations");
+    }
+
+    const zone = await tx.distributionZone.update({
+      where: { id: zoneId },
+      data: { deletedAt: new Date() },
+    });
+
+    await tx.auditLog.create({
+      data: {
+        actorId,
+        action: "DISTRIBUTION_ZONE_DELETED",
+        entityType: "DISTRIBUTION_ZONE",
+        entityId: zone.id,
+        details: { name: zone.name },
+      },
+    });
+
+    return zone;
+  });
+};
+
+export const DistributionZoneService = { list, getById, create, update, remove };

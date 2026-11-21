@@ -20,5 +20,6 @@ router.patch(
   validateRequest(updateDistributionZoneSchema),
   DistributionZoneController.update
 );
+router.delete("/:id", auth("ADMIN"), DistributionZoneController.remove);
 
 export const DistributionZoneRoutes: RouterType = router;
