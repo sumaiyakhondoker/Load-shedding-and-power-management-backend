@@ -40,6 +40,26 @@ const list = async (query: ListSubstationsQuery) => {
 	};
 };
 
+const getById = async (substationId: string) => {
+	const substation = await prisma.substation.findFirst({
+		where: { id: substationId, deletedAt: null },
+		select: {
+			id: true,
+			zoneId: true,
+			name: true,
+			code: true,
+			address: true,
+			createdAt: true,
+			updatedAt: true,
+		},
+	});
+	if (!substation) {
+		throw new AppError(404, "Substation not found");
+	}
+
+	return substation;
+};
+
 const create = async (actorId: string, input: CreateSubstationInput) => {
 	return prisma.$transaction(async (tx) => {
 		const zone = await tx.distributionZone.findFirst({
@@ -78,4 +98,4 @@ const create = async (actorId: string, input: CreateSubstationInput) => {
 	});
 };
 
-export const SubstationService = { list, create };
+export const SubstationService = { list, getById, create };

@@ -7,6 +7,7 @@ import { createSubstationSchema } from "./substation.validation";
 const router = Router();
 
 router.get("/", SubstationController.list);
+router.get("/:id", SubstationController.getById);
 router.post(
 	"/",
 	auth("ADMIN"),

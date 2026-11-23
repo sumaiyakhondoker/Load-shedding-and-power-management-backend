@@ -3,7 +3,7 @@ import { AppError } from "../../utils/AppError";
 import { catchAsync } from "../../utils/catchAsync";
 import { sendResponse } from "../../utils/sendResponse";
 import { SubstationService } from "./substation.service";
-import { listSubstationsSchema, type CreateSubstationInput } from "./substation.validation";
+import { listSubstationsSchema, substationIdSchema, type CreateSubstationInput } from "./substation.validation";
 
 const list = catchAsync(async (req, res) => {
 	const query = listSubstationsSchema.parse(req.query);
@@ -15,6 +15,12 @@ const list = catchAsync(async (req, res) => {
 		resMessage = "No substations found according to your searching.";
 	}
 	sendResponse({ res, statusCode: 200, message: resMessage, data: result });
+});
+
+const getById = catchAsync(async (req, res) => {
+	const substationId = substationIdSchema.parse(req.params.id);
+	const substation = await SubstationService.getById(substationId);
+	sendResponse({ res, statusCode: 200, message: "Substation details retrieved succcessfully!", data: substation });
 });
 
 const create = catchAsync(async (req, res) => {
@@ -34,4 +40,8 @@ const create = catchAsync(async (req, res) => {
 	});
 });
 
-export const SubstationController: { list: RequestHandler; create: RequestHandler } = { list, create };
+export const SubstationController: { list: RequestHandler; getById: RequestHandler; create: RequestHandler } = {
+	list,
+	getById,
+	create,
+};

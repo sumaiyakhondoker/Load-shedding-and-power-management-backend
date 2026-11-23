@@ -25,3 +25,5 @@ export const listSubstationsSchema = z
 	.strict();
 
 export type ListSubstationsQuery = z.infer<typeof listSubstationsSchema>;
+
+export const substationIdSchema = z.uuid();
