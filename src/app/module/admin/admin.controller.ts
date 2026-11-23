@@ -14,7 +14,7 @@ const listUsers = catchAsync(async (req, res) => {
 	const result = await AdminService.listUsers(query);
 
 	let resMessage: string;
-	if (result.users.length > 0) {
+	if (result.meta.total > 0) {
 		// console.log('length: ',result.users.length);
 		resMessage = "Users retrieved successfully!!";
 	} else {

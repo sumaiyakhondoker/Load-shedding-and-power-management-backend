@@ -3,7 +3,19 @@ import { AppError } from "../../utils/AppError";
 import { catchAsync } from "../../utils/catchAsync";
 import { sendResponse } from "../../utils/sendResponse";
 import { SubstationService } from "./substation.service";
-import type { CreateSubstationInput } from "./substation.validation";
+import { listSubstationsSchema, type CreateSubstationInput } from "./substation.validation";
+
+const list = catchAsync(async (req, res) => {
+	const query = listSubstationsSchema.parse(req.query);
+	const result = await SubstationService.list(query);
+	let resMessage: string;
+	if (result.meta.total > 0) {
+		resMessage = "All substations retrieved successfully!";
+	} else {
+		resMessage = "No substations found according to your searching.";
+	}
+	sendResponse({ res, statusCode: 200, message: resMessage, data: result });
+});
 
 const create = catchAsync(async (req, res) => {
 	if (!req.user) {
@@ -22,4 +34,4 @@ const create = catchAsync(async (req, res) => {
 	});
 });
 
-export const SubstationController: { create: RequestHandler } = { create };
+export const SubstationController: { list: RequestHandler; create: RequestHandler } = { list, create };
