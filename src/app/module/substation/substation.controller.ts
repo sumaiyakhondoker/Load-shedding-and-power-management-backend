@@ -3,7 +3,7 @@ import { AppError } from "../../utils/AppError";
 import { catchAsync } from "../../utils/catchAsync";
 import { sendResponse } from "../../utils/sendResponse";
 import { SubstationService } from "./substation.service";
-import { listSubstationsSchema, substationIdSchema, type CreateSubstationInput } from "./substation.validation";
+import { listSubstationsSchema, substationIdSchema, type CreateSubstationInput, type UpdateSubstationInput } from "./substation.validation";
 
 const list = catchAsync(async (req, res) => {
 	const query = listSubstationsSchema.parse(req.query);
@@ -40,8 +40,23 @@ const create = catchAsync(async (req, res) => {
 	});
 });
 
-export const SubstationController: { list: RequestHandler; getById: RequestHandler; create: RequestHandler } = {
+const update = catchAsync(async (req, res) => {
+	if (!req.user) {
+		throw new AppError(401, "Authentication required");
+	}
+
+	const substationId = substationIdSchema.parse(req.params.id);
+	const substation = await SubstationService.update(
+		req.user.id,
+		substationId,
+		req.body as UpdateSubstationInput,
+	);
+	sendResponse({ res, statusCode: 200, message: "Substation updated successfully!", data: substation });
+});
+
+export const SubstationController: { list: RequestHandler; getById: RequestHandler; create: RequestHandler; update: RequestHandler } = {
 	list,
 	getById,
 	create,
+	update,
 };

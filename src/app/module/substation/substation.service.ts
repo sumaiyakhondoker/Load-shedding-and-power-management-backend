@@ -1,7 +1,7 @@
 import type { Prisma } from "../../../../generated/prisma/client";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../utils/AppError";
-import type { CreateSubstationInput, ListSubstationsQuery } from "./substation.validation";
+import type { CreateSubstationInput, ListSubstationsQuery, UpdateSubstationInput } from "./substation.validation";
 
 const list = async (query: ListSubstationsQuery) => {
 	const where: Prisma.SubstationWhereInput = {
@@ -98,4 +98,53 @@ const create = async (actorId: string, input: CreateSubstationInput) => {
 	});
 };
 
-export const SubstationService = { list, getById, create };
+const update = async (actorId: string, substationId: string, input: UpdateSubstationInput) => {
+	return prisma.$transaction(async (tx) => {
+		const existingSubstation = await tx.substation.findFirst({
+			where: { id: substationId, deletedAt: null },
+			select: { id: true },
+		});
+		if (!existingSubstation) {
+			throw new AppError(404, "Substation not found");
+		}
+
+		if (input.zoneId) {
+			const zone = await tx.distributionZone.findFirst({
+				where: { id: input.zoneId, deletedAt: null },
+				select: { id: true },
+			});
+			if (!zone) {
+				throw new AppError(404, "Distribution zone not found");
+			}
+		}
+
+		if (input.code) {
+			const existingCode = await tx.substation.findUnique({
+				where: { code: input.code },
+				select: { id: true },
+			});
+			if (existingCode && existingCode.id !== substationId) {
+				throw new AppError(409, "Substation code already exists");
+			}
+		}
+
+		const substation = await tx.substation.update({
+			where: { id: substationId },
+			data: input,
+		});
+
+		await tx.auditLog.create({
+			data: {
+				actorId,
+				action: "SUBSTATION_UPDATED",
+				entityType: "SUBSTATION",
+				entityId: substation.id,
+				details: { changes: input },
+			},
+		});
+
+		return substation;
+	});
+};
+
+export const SubstationService = { list, getById, create, update };

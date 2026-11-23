@@ -27,3 +27,11 @@ export const listSubstationsSchema = z
 export type ListSubstationsQuery = z.infer<typeof listSubstationsSchema>;
 
 export const substationIdSchema = z.uuid();
+
+export const updateSubstationSchema = createSubstationSchema
+	.partial()
+	.refine((data) => Object.keys(data).length > 0, {
+		message: "At least one field is required",
+	});
+
+export type UpdateSubstationInput = z.infer<typeof updateSubstationSchema>;
