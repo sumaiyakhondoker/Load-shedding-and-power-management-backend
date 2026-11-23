@@ -3,7 +3,19 @@ import { AppError } from "../../utils/AppError";
 import { catchAsync } from "../../utils/catchAsync";
 import { sendResponse } from "../../utils/sendResponse";
 import { AreaService } from "./area.service";
-import type { CreateAreaInput } from "./area.validation";
+import { listAreasSchema, type CreateAreaInput } from "./area.validation";
+
+const list = catchAsync(async (req, res) => {
+	const query = listAreasSchema.parse(req.query);
+	const result = await AreaService.list(query);
+	let resMessage: string;
+	if (result.meta.total > 0) {
+		resMessage = "Areas retrieved successfully!";
+	} else {
+		resMessage = "No areas found according to your searching.";
+	}
+	sendResponse({ res, statusCode: 200, message: resMessage, data: result });
+});
 
 const create = catchAsync(async (req, res) => {
 	if (!req.user) {
@@ -14,4 +26,4 @@ const create = catchAsync(async (req, res) => {
 	sendResponse({ res, statusCode: 201, message: "Area created successfully!", data: area });
 });
 
-export const AreaController: { create: RequestHandler } = { create };
+export const AreaController: { list: RequestHandler; create: RequestHandler } = { list, create };
