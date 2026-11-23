@@ -22,3 +22,11 @@ export const listAreasSchema = z
 export type ListAreasQuery = z.infer<typeof listAreasSchema>;
 
 export const areaIdSchema = z.uuid();
+
+export const updateAreaSchema = createAreaSchema
+	.partial()
+	.refine((data) => Object.keys(data).length > 0, {
+		message: "At least one field is required",
+	});
+
+export type UpdateAreaInput = z.infer<typeof updateAreaSchema>;

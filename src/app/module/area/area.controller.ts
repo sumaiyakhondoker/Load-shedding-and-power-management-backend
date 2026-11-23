@@ -3,7 +3,7 @@ import { AppError } from "../../utils/AppError";
 import { catchAsync } from "../../utils/catchAsync";
 import { sendResponse } from "../../utils/sendResponse";
 import { AreaService } from "./area.service";
-import { areaIdSchema, listAreasSchema, type CreateAreaInput } from "./area.validation";
+import { areaIdSchema, listAreasSchema, type CreateAreaInput, type UpdateAreaInput } from "./area.validation";
 
 const list = catchAsync(async (req, res) => {
 	const query = listAreasSchema.parse(req.query);
@@ -32,4 +32,14 @@ const create = catchAsync(async (req, res) => {
 	sendResponse({ res, statusCode: 201, message: "Area created successfully!", data: area });
 });
 
-export const AreaController: { list: RequestHandler; getById: RequestHandler; create: RequestHandler } = { list, getById, create };
+const update = catchAsync(async (req, res) => {
+	if (!req.user) {
+		throw new AppError(401, "Authentication required");
+	}
+
+	const areaId = areaIdSchema.parse(req.params.id);
+	const area = await AreaService.update(req.user.id, areaId, req.body as UpdateAreaInput);
+	sendResponse({ res, statusCode: 200, message: "Area updated successfully!", data: area });
+});
+
+export const AreaController: { list: RequestHandler; getById: RequestHandler; create: RequestHandler; update: RequestHandler } = { list, getById, create, update };

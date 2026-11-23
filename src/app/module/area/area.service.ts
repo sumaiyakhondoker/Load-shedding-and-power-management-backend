@@ -1,7 +1,7 @@
 import type { Prisma } from "../../../../generated/prisma/client";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../utils/AppError";
-import type { CreateAreaInput, ListAreasQuery } from "./area.validation";
+import type { CreateAreaInput, ListAreasQuery, UpdateAreaInput } from "./area.validation";
 
 const list = async (query: ListAreasQuery) => {
 	const where: Prisma.AreaWhereInput = {
@@ -84,4 +84,43 @@ const create = async (actorId: string, input: CreateAreaInput) => {
 	});
 };
 
-export const AreaService = { list, getById, create };
+const update = async (actorId: string, areaId: string, input: UpdateAreaInput) => {
+	return prisma.$transaction(async (tx) => {
+		const existingArea = await tx.area.findFirst({
+			where: { id: areaId, deletedAt: null },
+			select: { id: true },
+		});
+		if (!existingArea) {
+			throw new AppError(404, "Area not found");
+		}
+
+		if (input.feederId) {
+			const feeder = await tx.feeder.findFirst({
+				where: { id: input.feederId, deletedAt: null },
+				select: { id: true },
+			});
+			if (!feeder) {
+				throw new AppError(404, "Feeder not found");
+			}
+		}
+
+		const area = await tx.area.update({
+			where: { id: areaId },
+			data: input,
+		});
+
+		await tx.auditLog.create({
+			data: {
+				actorId,
+				action: "AREA_UPDATED",
+				entityType: "AREA",
+				entityId: area.id,
+				details: { changes: input },
+			},
+		});
+
+		return area;
+	});
+};
+
+export const AreaService = { list, getById, create, update };
