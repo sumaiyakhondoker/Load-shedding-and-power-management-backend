@@ -3,7 +3,7 @@ import { AppError } from "../../utils/AppError";
 import { catchAsync } from "../../utils/catchAsync";
 import { sendResponse } from "../../utils/sendResponse";
 import { FeederService } from "./feeder.service";
-import { listFeedersSchema, type CreateFeederInput } from "./feeder.validation";
+import { feederIdSchema, listFeedersSchema, type CreateFeederInput, type UpdateFeederInput } from "./feeder.validation";
 
 const list = catchAsync(async (req, res) => {
 	const query = listFeedersSchema.parse(req.query);
@@ -26,4 +26,14 @@ const create = catchAsync(async (req, res) => {
 	sendResponse({ res, statusCode: 201, message: "Feeder created successfully!", data: feeder });
 });
 
-export const FeederController: { list: RequestHandler; create: RequestHandler } = { list, create };
+const update = catchAsync(async (req, res) => {
+	if (!req.user) {
+		throw new AppError(401, "Authentication required");
+	}
+
+	const feederId = feederIdSchema.parse(req.params.id);
+	const feeder = await FeederService.update(req.user.id, feederId, req.body as UpdateFeederInput);
+	sendResponse({ res, statusCode: 200, message: "Feeder updated successfully!", data: feeder });
+});
+
+export const FeederController: { list: RequestHandler; create: RequestHandler; update: RequestHandler } = { list, create, update };

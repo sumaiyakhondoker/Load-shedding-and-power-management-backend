@@ -20,3 +20,13 @@ export const listFeedersSchema = z
 	.strict();
 
 export type ListFeedersQuery = z.infer<typeof listFeedersSchema>;
+
+export const feederIdSchema = z.uuid();
+
+export const updateFeederSchema = createFeederSchema
+	.partial()
+	.refine((data) => Object.keys(data).length > 0, {
+		message: "At least one field is required",
+	});
+
+export type UpdateFeederInput = z.infer<typeof updateFeederSchema>;

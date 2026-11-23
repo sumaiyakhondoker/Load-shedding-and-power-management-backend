@@ -1,7 +1,7 @@
 import type { Prisma } from "../../../../generated/prisma/client";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../utils/AppError";
-import type { CreateFeederInput, ListFeedersQuery } from "./feeder.validation";
+import type { CreateFeederInput, ListFeedersQuery, UpdateFeederInput } from "./feeder.validation";
 
 const list = async (query: ListFeedersQuery) => {
 	const where: Prisma.FeederWhereInput = {
@@ -73,4 +73,55 @@ const create = async (actorId: string, input: CreateFeederInput) => {
 	});
 };
 
-export const FeederService = { list, create };
+const update = async (actorId: string, feederId: string, input: UpdateFeederInput) => {
+	return prisma.$transaction(async (tx) => {
+		const existingFeeder = await tx.feeder.findFirst({
+			where: { id: feederId, deletedAt: null },
+			select: { id: true, substationId: true, code: true },
+		});
+		if (!existingFeeder) {
+			throw new AppError(404, "Feeder not found");
+		}
+
+		if (input.substationId) {
+			const substation = await tx.substation.findFirst({
+				where: { id: input.substationId, deletedAt: null },
+				select: { id: true },
+			});
+			if (!substation) {
+				throw new AppError(404, "Substation not found");
+			}
+		}
+
+		if (input.code || input.substationId) {
+			const substationId = input.substationId ?? existingFeeder.substationId;
+			const code = input.code ?? existingFeeder.code;
+			const existingCode = await tx.feeder.findUnique({
+				where: { substationId_code: { substationId, code } },
+				select: { id: true },
+			});
+			if (existingCode && existingCode.id !== feederId) {
+				throw new AppError(409, "Feeder code already exists in this substation");
+			}
+		}
+
+		const feeder = await tx.feeder.update({
+			where: { id: feederId },
+			data: input,
+		});
+
+		await tx.auditLog.create({
+			data: {
+				actorId,
+				action: "FEEDER_UPDATED",
+				entityType: "FEEDER",
+				entityId: feeder.id,
+				details: { changes: input },
+			},
+		});
+
+		return feeder;
+	});
+};
+
+export const FeederService = { list, create, update };
