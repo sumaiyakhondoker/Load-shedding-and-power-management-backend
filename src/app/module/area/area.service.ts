@@ -123,4 +123,34 @@ const update = async (actorId: string, areaId: string, input: UpdateAreaInput) =
 	});
 };
 
-export const AreaService = { list, getById, create, update };
+const remove = async (actorId: string, areaId: string) => {
+	return prisma.$transaction(async (tx) => {
+		const existingArea = await tx.area.findFirst({
+			where: { id: areaId, deletedAt: null },
+			select: { id: true, name: true, feederId: true },
+		});
+		if (!existingArea) {
+			throw new AppError(404, "Area not found");
+		}
+
+		const area = await tx.area.update({
+			where: { id: areaId },
+			data: { deletedAt: new Date() },
+			select: { id: true },
+		});
+
+		await tx.auditLog.create({
+			data: {
+				actorId,
+				action: "AREA_DELETED",
+				entityType: "AREA",
+				entityId: area.id,
+				details: { name: existingArea.name, feederId: existingArea.feederId },
+			},
+		});
+
+		return area;
+	});
+};
+
+export const AreaService = { list, getById, create, update, remove };
