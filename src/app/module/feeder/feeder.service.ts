@@ -124,4 +124,42 @@ const update = async (actorId: string, feederId: string, input: UpdateFeederInpu
 	});
 };
 
-export const FeederService = { list, create, update };
+const remove = async (actorId: string, feederId: string) => {
+	return prisma.$transaction(async (tx) => {
+		const existingFeeder = await tx.feeder.findFirst({
+			where: { id: feederId, deletedAt: null },
+			select: { id: true, name: true, code: true },
+		});
+		if (!existingFeeder) {
+			throw new AppError(404, "Feeder not found");
+		}
+
+		const activeArea = await tx.area.findFirst({
+			where: { feederId, deletedAt: null },
+			select: { id: true },
+		});
+		if (activeArea) {
+			throw new AppError(409, "Cannot delete a feeder with active areas");
+		}
+
+		const feeder = await tx.feeder.update({
+			where: { id: feederId },
+			data: { deletedAt: new Date() },
+			select: { id: true },
+		});
+
+		await tx.auditLog.create({
+			data: {
+				actorId,
+				action: "FEEDER_DELETED",
+				entityType: "FEEDER",
+				entityId: feeder.id,
+				details: { name: existingFeeder.name, code: existingFeeder.code },
+			},
+		});
+
+		return feeder;
+	});
+};
+
+export const FeederService = { list, create, update, remove };

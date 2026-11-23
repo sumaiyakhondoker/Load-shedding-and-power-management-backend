@@ -36,4 +36,14 @@ const update = catchAsync(async (req, res) => {
 	sendResponse({ res, statusCode: 200, message: "Feeder updated successfully!", data: feeder });
 });
 
-export const FeederController: { list: RequestHandler; create: RequestHandler; update: RequestHandler } = { list, create, update };
+const remove = catchAsync(async (req, res) => {
+	if (!req.user) {
+		throw new AppError(401, "Authentication required");
+	}
+
+	const feederId = feederIdSchema.parse(req.params.id);
+	const feeder = await FeederService.remove(req.user.id, feederId);
+	sendResponse({ res, statusCode: 200, message: "Feeder deleted successfully!", data: feeder });
+});
+
+export const FeederController: { list: RequestHandler; create: RequestHandler; update: RequestHandler; remove: RequestHandler } = { list, create, update, remove };
