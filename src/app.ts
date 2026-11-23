@@ -6,6 +6,7 @@ import { rateLimit } from "express-rate-limit";
 import { globalErrorHandler } from "./app/middleware/globalErrorHandler";
 import { notFound } from "./app/middleware/notFound";
 import { AdminRoutes } from "./app/module/admin/admin.route";
+import { AreaRoutes } from "./app/module/area/area.route";
 import { AuthRoutes } from "./app/module/auth/auth.route";
 import { FeederRoutes } from "./app/module/feeder/feeder.route";
 
@@ -60,6 +61,7 @@ app.use("/api/v1/admin", AdminRoutes);
 app.use("/api/v1/distribution-zones", DistributionZoneRoutes);
 app.use("/api/v1/substations", SubstationRoutes);
 app.use("/api/v1/feeders", FeederRoutes);
+app.use("/api/v1/areas", AreaRoutes);
 
 app.use(notFound);
 app.use(globalErrorHandler);
