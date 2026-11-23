@@ -20,3 +20,5 @@ export const listAreasSchema = z
 	.strict();
 
 export type ListAreasQuery = z.infer<typeof listAreasSchema>;
+
+export const areaIdSchema = z.uuid();

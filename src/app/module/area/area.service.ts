@@ -39,6 +39,25 @@ const list = async (query: ListAreasQuery) => {
 	};
 };
 
+const getById = async (areaId: string) => {
+	const area = await prisma.area.findFirst({
+		where: { id: areaId, deletedAt: null },
+		select: {
+			id: true,
+			feederId: true,
+			name: true,
+			address: true,
+			createdAt: true,
+			updatedAt: true,
+		},
+	});
+	if (!area) {
+		throw new AppError(404, "Area not found");
+	}
+
+	return area;
+};
+
 const create = async (actorId: string, input: CreateAreaInput) => {
 	return prisma.$transaction(async (tx) => {
 		const feeder = await tx.feeder.findFirst({
@@ -65,4 +84,4 @@ const create = async (actorId: string, input: CreateAreaInput) => {
 	});
 };
 
-export const AreaService = { list, create };
+export const AreaService = { list, getById, create };

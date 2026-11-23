@@ -7,6 +7,7 @@ import { createAreaSchema } from "./area.validation";
 const router = Router();
 
 router.get("/", AreaController.list);
+router.get("/:id", AreaController.getById);
 router.post("/", auth("ADMIN"), validateRequest(createAreaSchema), AreaController.create);
 
 export const AreaRoutes: RouterType = router;
