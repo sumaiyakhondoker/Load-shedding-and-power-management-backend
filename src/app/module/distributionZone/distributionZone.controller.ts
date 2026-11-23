@@ -29,7 +29,7 @@ const getById = catchAsync(async (req, res) => {
 	sendResponse({
 		res,
 		statusCode: 200,
-		message: "Distribution zone details retrieved",
+		message: "Distribution zone details retrieved successfully!",
 		data: zone,
 	});
 });
@@ -46,7 +46,7 @@ const create = catchAsync(async (req, res) => {
 	sendResponse({
 		res,
 		statusCode: 201,
-		message: "Distribution zone created",
+		message: "Distribution zone created successfully!",
 		data: zone,
 	});
 });
@@ -65,7 +65,7 @@ const update = catchAsync(async (req, res) => {
 	sendResponse({
 		res,
 		statusCode: 200,
-		message: "Distribution zone updated",
+		message: "Distribution zone updated successfully!",
 		data: zone,
 	});
 });
@@ -80,7 +80,7 @@ const remove = catchAsync(async (req, res) => {
 	sendResponse({
 		res,
 		statusCode: 200,
-		message: "Distribution zone deleted",
+		message: "Distribution zone deleted successfully!",
 		data: zone,
 	});
 });

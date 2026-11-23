@@ -9,3 +9,14 @@ export const createFeederSchema = z
 	.strict();
 
 export type CreateFeederInput = z.infer<typeof createFeederSchema>;
+
+export const listFeedersSchema = z
+	.object({
+		page: z.coerce.number().int().min(1).max(100000).default(1),
+		limit: z.coerce.number().int().min(1).max(100).default(10),
+		substationId: z.uuid().optional(),
+		search: z.string().trim().min(1).max(100).optional(),
+	})
+	.strict();
+
+export type ListFeedersQuery = z.infer<typeof listFeedersSchema>;

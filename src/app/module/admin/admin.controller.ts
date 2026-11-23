@@ -16,7 +16,7 @@ const listUsers = catchAsync(async (req, res) => {
 	let resMessage: string;
 	if (result.meta.total > 0) {
 		// console.log('length: ',result.users.length);
-		resMessage = "Users retrieved successfully!!";
+		resMessage = "Users retrieved successfully!";
 	} else {
 		resMessage = "No users found according to your searching.";
 	}
@@ -38,7 +38,7 @@ const updateUserRole = catchAsync(async (req, res) => {
 	sendResponse({
 		res,
 		statusCode: 200,
-		message: "User role updated",
+		message: "User role updated successfully!",
 		data: user,
 	});
 });

@@ -6,6 +6,7 @@ import { createFeederSchema } from "./feeder.validation";
 
 const router = Router();
 
+router.get("/", FeederController.list);
 router.post("/", auth("ADMIN"), validateRequest(createFeederSchema), FeederController.create);
 
 export const FeederRoutes: RouterType = router;

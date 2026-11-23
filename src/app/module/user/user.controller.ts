@@ -14,7 +14,7 @@ const getMe = catchAsync(async (req, res) => {
 	sendResponse({
 		res,
 		statusCode: 200,
-		message: "Profile retrieved successfully!!",
+		message: "Profile retrieved successfully!",
 		data: user,
 	});
 });
@@ -31,7 +31,7 @@ const updateMe = catchAsync(async (req, res) => {
 	sendResponse({
 		res,
 		statusCode: 200,
-		message: "Profile updated successfully!!",
+		message: "Profile updated successfully!",
 		data: user,
 	});
 });

@@ -1,6 +1,43 @@
+import type { Prisma } from "../../../../generated/prisma/client";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../utils/AppError";
-import type { CreateFeederInput } from "./feeder.validation";
+import type { CreateFeederInput, ListFeedersQuery } from "./feeder.validation";
+
+const list = async (query: ListFeedersQuery) => {
+	const where: Prisma.FeederWhereInput = {
+		deletedAt: null,
+		substationId: query.substationId,
+		OR: query.search
+			? [
+				{ name: { contains: query.search, mode: "insensitive" } },
+				{ code: { contains: query.search, mode: "insensitive" } },
+			]
+			: undefined,
+	};
+
+	const [feeders, total] = await prisma.$transaction([
+		prisma.feeder.findMany({
+			where,
+			select: {
+				id: true,
+				substationId: true,
+				name: true,
+				code: true,
+				createdAt: true,
+				updatedAt: true,
+			},
+			orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+			skip: (query.page - 1) * query.limit,
+			take: query.limit,
+		}),
+		prisma.feeder.count({ where }),
+	]);
+
+	return {
+		feeders,
+		meta: { page: query.page, limit: query.limit, total, totalPages: Math.ceil(total / query.limit) },
+	};
+};
 
 const create = async (actorId: string, input: CreateFeederInput) => {
 	return prisma.$transaction(async (tx) => {
@@ -36,4 +73,4 @@ const create = async (actorId: string, input: CreateFeederInput) => {
 	});
 };
 
-export const FeederService = { create };
+export const FeederService = { list, create };

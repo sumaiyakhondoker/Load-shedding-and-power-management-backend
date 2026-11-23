@@ -20,7 +20,7 @@ const list = catchAsync(async (req, res) => {
 const getById = catchAsync(async (req, res) => {
 	const substationId = substationIdSchema.parse(req.params.id);
 	const substation = await SubstationService.getById(substationId);
-	sendResponse({ res, statusCode: 200, message: "Substation details retrieved succcessfully!", data: substation });
+	sendResponse({ res, statusCode: 200, message: "Substation details retrieved successfully!", data: substation });
 });
 
 const create = catchAsync(async (req, res) => {
@@ -35,7 +35,7 @@ const create = catchAsync(async (req, res) => {
 	sendResponse({
 		res,
 		statusCode: 201,
-		message: "Substation created",
+		message: "Substation created successfully!",
 		data: substation,
 	});
 });
@@ -61,7 +61,7 @@ const remove = catchAsync(async (req, res) => {
 
 	const substationId = substationIdSchema.parse(req.params.id);
 	const substation = await SubstationService.remove(req.user.id, substationId);
-	sendResponse({ res, statusCode: 200, message: "Substation deleted successfully!!", data: substation });
+	sendResponse({ res, statusCode: 200, message: "Substation deleted successfully!", data: substation });
 });
 
 export const SubstationController: { list: RequestHandler; getById: RequestHandler; create: RequestHandler; update: RequestHandler; remove: RequestHandler } = {
