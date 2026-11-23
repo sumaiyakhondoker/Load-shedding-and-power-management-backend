@@ -54,9 +54,20 @@ const update = catchAsync(async (req, res) => {
 	sendResponse({ res, statusCode: 200, message: "Substation updated successfully!", data: substation });
 });
 
-export const SubstationController: { list: RequestHandler; getById: RequestHandler; create: RequestHandler; update: RequestHandler } = {
+const remove = catchAsync(async (req, res) => {
+	if (!req.user) {
+		throw new AppError(401, "Authentication required");
+	}
+
+	const substationId = substationIdSchema.parse(req.params.id);
+	const substation = await SubstationService.remove(req.user.id, substationId);
+	sendResponse({ res, statusCode: 200, message: "Substation deleted successfully!!", data: substation });
+});
+
+export const SubstationController: { list: RequestHandler; getById: RequestHandler; create: RequestHandler; update: RequestHandler; remove: RequestHandler } = {
 	list,
 	getById,
 	create,
 	update,
+	remove,
 };

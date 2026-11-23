@@ -15,5 +15,6 @@ router.post(
 	SubstationController.create,
 );
 router.patch("/:id", auth("ADMIN"), validateRequest(updateSubstationSchema), SubstationController.update);
+router.delete("/:id", auth("ADMIN"), SubstationController.remove);
 
 export const SubstationRoutes: RouterType = router;

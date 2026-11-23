@@ -147,4 +147,42 @@ const update = async (actorId: string, substationId: string, input: UpdateSubsta
 	});
 };
 
-export const SubstationService = { list, getById, create, update };
+const remove = async (actorId: string, substationId: string) => {
+	return prisma.$transaction(async (tx) => {
+		const existingSubstation = await tx.substation.findFirst({
+			where: { id: substationId, deletedAt: null },
+			select: { id: true, name: true, code: true },
+		});
+		if (!existingSubstation) {
+			throw new AppError(404, "Substation not found");
+		}
+
+		const activeFeeder = await tx.feeder.findFirst({
+			where: { substationId, deletedAt: null },
+			select: { id: true },
+		});
+		if (activeFeeder) {
+			throw new AppError(409, "Cannot delete a substation with active feeders");
+		}
+
+		const substation = await tx.substation.update({
+			where: { id: substationId },
+			data: { deletedAt: new Date() },
+			select: { id: true },
+		});
+
+		await tx.auditLog.create({
+			data: {
+				actorId,
+				action: "SUBSTATION_DELETED",
+				entityType: "SUBSTATION",
+				entityId: substation.id,
+				details: { name: existingSubstation.name, code: existingSubstation.code },
+			},
+		});
+
+		return substation;
+	});
+};
+
+export const SubstationService = { list, getById, create, update, remove };

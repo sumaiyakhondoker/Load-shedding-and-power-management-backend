@@ -114,6 +114,7 @@ const remove = async (actorId: string, zoneId: string) => {
 	return prisma.$transaction(async (tx) => {
 		const existingZone = await tx.distributionZone.findFirst({
 			where: { id: zoneId, deletedAt: null },
+			select: { id: true, name: true },
 		});
 		if (!existingZone) {
 			throw new AppError(404, "Distribution zone not found");
@@ -130,6 +131,7 @@ const remove = async (actorId: string, zoneId: string) => {
 		const zone = await tx.distributionZone.update({
 			where: { id: zoneId },
 			data: { deletedAt: new Date() },
+			select: { id: true },
 		});
 
 		await tx.auditLog.create({
@@ -138,7 +140,7 @@ const remove = async (actorId: string, zoneId: string) => {
 				action: "DISTRIBUTION_ZONE_DELETED",
 				entityType: "DISTRIBUTION_ZONE",
 				entityId: zone.id,
-				details: { name: zone.name },
+				details: { name: existingZone.name },
 			},
 		});
 
