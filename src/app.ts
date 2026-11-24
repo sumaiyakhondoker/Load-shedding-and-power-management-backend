@@ -9,6 +9,7 @@ import { AdminRoutes } from "./app/module/admin/admin.route";
 import { AreaRoutes } from "./app/module/area/area.route";
 import { AuthRoutes } from "./app/module/auth/auth.route";
 import { FeederRoutes } from "./app/module/feeder/feeder.route";
+import { ScheduleRoutes } from "./app/module/schedule/schedule.route";
 
 import { UserRoutes } from "./app/module/user/user.route";
 import { SubstationRoutes } from "./app/module/substation/substation.route";
@@ -62,6 +63,7 @@ app.use("/api/v1/distribution-zones", DistributionZoneRoutes);
 app.use("/api/v1/substations", SubstationRoutes);
 app.use("/api/v1/feeders", FeederRoutes);
 app.use("/api/v1/areas", AreaRoutes);
+app.use("/api/v1/schedules", ScheduleRoutes);
 
 app.use(notFound);
 app.use(globalErrorHandler);
