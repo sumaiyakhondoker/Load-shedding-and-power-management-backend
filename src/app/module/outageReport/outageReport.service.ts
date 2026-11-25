@@ -63,6 +63,41 @@ const list = async (
 	};
 };
 
+const getById = async (
+	reportId: string,
+	user: { id: string; role: UserRole },
+) => {
+	const report = await prisma.outageReport.findFirst({
+		where: {
+			id: reportId,
+			deletedAt: null,
+			reportedById: user.role === "CUSTOMER" ? user.id : undefined,
+			assignedTechnicianId: user.role === "TECHNICIAN" ? user.id : undefined,
+		},
+		select: {
+			id: true,
+			areaId: true,
+			reportedById: true,
+			assignedTechnicianId: true,
+			title: true,
+			description: true,
+			status: true,
+			priority: true,
+			reportedAt: true,
+			assignedAt: true,
+			resolvedAt: true,
+			resolutionNote: true,
+			createdAt: true,
+			updatedAt: true,
+		},
+	});
+	if (!report) {
+		throw new AppError(404, "Outage report not found");
+	}
+
+	return report;
+};
+
 const create = async (customerId: string, input: CreateOutageReportInput) => {
 	return prisma.$transaction(async (tx) => {
 		const area = await tx.area.findFirst({
@@ -91,4 +126,4 @@ const create = async (customerId: string, input: CreateOutageReportInput) => {
 	});
 };
 
-export const OutageReportService = { list, create };
+export const OutageReportService = { list, getById, create };

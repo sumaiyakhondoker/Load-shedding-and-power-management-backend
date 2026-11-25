@@ -11,6 +11,11 @@ router.get(
 	auth("ADMIN", "TECHNICIAN", "CUSTOMER"),
 	OutageReportController.list,
 );
+router.get(
+	"/:id",
+	auth("ADMIN", "TECHNICIAN", "CUSTOMER"),
+	OutageReportController.getById,
+);
 router.post(
 	"/",
 	auth("CUSTOMER"),

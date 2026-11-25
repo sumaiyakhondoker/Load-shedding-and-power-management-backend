@@ -5,6 +5,7 @@ import { sendResponse } from "../../utils/sendResponse";
 import { OutageReportService } from "./outageReport.service";
 import {
 	listOutageReportsSchema,
+	outageReportIdSchema,
 	type CreateOutageReportInput,
 } from "./outageReport.validation";
 
@@ -27,6 +28,21 @@ const list = catchAsync(async (req, res) => {
 	sendResponse({ res, statusCode: 200, message, data: result });
 });
 
+const getById = catchAsync(async (req, res) => {
+	if (!req.user) {
+		throw new AppError(401, "Authentication required");
+	}
+
+	const reportId = outageReportIdSchema.parse(req.params.id);
+	const report = await OutageReportService.getById(reportId, req.user);
+	sendResponse({
+		res,
+		statusCode: 200,
+		message: "Outage report details retrieved successfully!",
+		data: report,
+	});
+});
+
 const create = catchAsync(async (req, res) => {
 	if (!req.user) {
 		throw new AppError(401, "Authentication required");
@@ -46,5 +62,6 @@ const create = catchAsync(async (req, res) => {
 
 export const OutageReportController: {
 	list: RequestHandler;
+	getById: RequestHandler;
 	create: RequestHandler;
-} = { list, create };
+} = { list, getById, create };

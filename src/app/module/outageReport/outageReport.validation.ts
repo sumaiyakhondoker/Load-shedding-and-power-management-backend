@@ -30,3 +30,5 @@ export const listOutageReportsSchema = z
 	.strict();
 
 export type ListOutageReportsQuery = z.infer<typeof listOutageReportsSchema>;
+
+export const outageReportIdSchema = z.uuid();
