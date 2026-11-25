@@ -6,6 +6,11 @@ import { createOutageReportSchema } from "./outageReport.validation";
 
 const router = Router();
 
+router.get(
+	"/",
+	auth("ADMIN", "TECHNICIAN", "CUSTOMER"),
+	OutageReportController.list,
+);
 router.post(
 	"/",
 	auth("CUSTOMER"),
