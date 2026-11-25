@@ -3,7 +3,12 @@ import { AppError } from "../../utils/AppError";
 import { catchAsync } from "../../utils/catchAsync";
 import { sendResponse } from "../../utils/sendResponse";
 import { ScheduleService } from "./schedule.service";
-import { listSchedulesSchema, type CreateScheduleInput } from "./schedule.validation";
+import {
+	listSchedulesSchema,
+	scheduleIdSchema,
+	type CreateScheduleInput,
+	type UpdateScheduleInput,
+} from "./schedule.validation";
 
 const list = catchAsync(async (req, res) => {
 	if (!req.user) {
@@ -26,8 +31,39 @@ const create = catchAsync(async (req, res) => {
 		throw new AppError(401, "Authentication required");
 	}
 
-	const schedule = await ScheduleService.create(req.user.id, req.body as CreateScheduleInput);
-	sendResponse({ res, statusCode: 201, message: "Schedule created successfully!", data: schedule });
+	const schedule = await ScheduleService.create(
+		req.user.id,
+		req.body as CreateScheduleInput,
+	);
+	sendResponse({
+		res,
+		statusCode: 201,
+		message: "Schedule created successfully!",
+		data: schedule,
+	});
 });
 
-export const ScheduleController: { list: RequestHandler; create: RequestHandler } = { list, create };
+const update = catchAsync(async (req, res) => {
+	if (!req.user) {
+		throw new AppError(401, "Authentication required");
+	}
+
+	const scheduleId = scheduleIdSchema.parse(req.params.id);
+	const schedule = await ScheduleService.update(
+		req.user.id,
+		scheduleId,
+		req.body as UpdateScheduleInput,
+	);
+	sendResponse({
+		res,
+		statusCode: 200,
+		message: "Schedule updated successfully!",
+		data: schedule,
+	});
+});
+
+export const ScheduleController: {
+	list: RequestHandler;
+	create: RequestHandler;
+	update: RequestHandler;
+} = { list, create, update };

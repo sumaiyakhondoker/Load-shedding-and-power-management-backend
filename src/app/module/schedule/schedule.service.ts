@@ -5,6 +5,7 @@ import { AppError } from "../../utils/AppError";
 import type {
 	CreateScheduleInput,
 	ListSchedulesQuery,
+	UpdateScheduleInput,
 } from "./schedule.validation";
 
 const list = async (query: ListSchedulesQuery, role: UserRole) => {
@@ -106,4 +107,87 @@ const create = async (actorId: string, input: CreateScheduleInput) => {
 	}
 };
 
-export const ScheduleService = { list, create };
+const update = async (
+	actorId: string,
+	scheduleId: string,
+	input: UpdateScheduleInput,
+) => {
+	try {
+		return await prisma.$transaction(
+			async (tx) => {
+				const existingSchedule = await tx.loadSheddingSchedule.findFirst({
+					where: { id: scheduleId, deletedAt: null },
+					select: { areaId: true, startsAt: true, endsAt: true, status: true },
+				});
+				if (!existingSchedule) {
+					throw new AppError(404, "Schedule not found");
+				}
+				if (existingSchedule.status !== "DRAFT") {
+					throw new AppError(409, "Only draft schedules can be edited");
+				}
+
+				const areaId = input.areaId ?? existingSchedule.areaId;
+				const startsAt = input.startsAt ?? existingSchedule.startsAt;
+				const endsAt = input.endsAt ?? existingSchedule.endsAt;
+				if (startsAt >= endsAt) {
+					throw new AppError(400, "End time must be after start time");
+				}
+
+				if (input.areaId) {
+					const area = await tx.area.findFirst({
+						where: { id: areaId, deletedAt: null },
+						select: { id: true },
+					});
+					if (!area) {
+						throw new AppError(404, "Area not found");
+					}
+				}
+
+				const overlappingSchedule = await tx.loadSheddingSchedule.findFirst({
+					where: {
+						id: { not: scheduleId },
+						areaId,
+						deletedAt: null,
+						NOT: { status: "CANCELLED" },
+						startsAt: { lt: endsAt },
+						endsAt: { gt: startsAt },
+					},
+					select: { id: true },
+				});
+				if (overlappingSchedule) {
+					throw new AppError(
+						409,
+						"Schedule overlaps with an existing schedule in this area",
+					);
+				}
+
+				const schedule = await tx.loadSheddingSchedule.update({
+					where: { id: scheduleId },
+					data: input,
+				});
+				await tx.auditLog.create({
+					data: {
+						actorId,
+						action: "SCHEDULE_UPDATED",
+						entityType: "LOAD_SHEDDING_SCHEDULE",
+						entityId: schedule.id,
+						details: { changes: input },
+					},
+				});
+
+				return schedule;
+			},
+			{ isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+		);
+	} catch (error) {
+		if (
+			error instanceof Prisma.PrismaClientKnownRequestError &&
+			error.code === "P2034"
+		) {
+			throw new AppError(409, "Schedule conflict; please retry");
+		}
+		throw error;
+	}
+};
+
+export const ScheduleService = { list, create, update };
