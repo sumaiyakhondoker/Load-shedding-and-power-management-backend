@@ -37,6 +37,14 @@ export const updateScheduleSchema = scheduleFieldsSchema
 
 export type UpdateScheduleInput = z.infer<typeof updateScheduleSchema>;
 
+export const updateScheduleStatusSchema = z
+	.object({ status: z.enum(ScheduleStatus) })
+	.strict();
+
+export type UpdateScheduleStatusInput = z.infer<
+	typeof updateScheduleStatusSchema
+>;
+
 export const scheduleIdSchema = z.uuid();
 
 export const listSchedulesSchema = z

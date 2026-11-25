@@ -5,6 +5,7 @@ import { ScheduleController } from "./schedule.controller";
 import {
 	createScheduleSchema,
 	updateScheduleSchema,
+	updateScheduleStatusSchema,
 } from "./schedule.validation";
 
 const router = Router();
@@ -25,6 +26,12 @@ router.patch(
 	auth("ADMIN"),
 	validateRequest(updateScheduleSchema),
 	ScheduleController.update,
+);
+router.patch(
+	"/:id/status",
+	auth("ADMIN"),
+	validateRequest(updateScheduleStatusSchema),
+	ScheduleController.updateStatus,
 );
 
 export const ScheduleRoutes: RouterType = router;

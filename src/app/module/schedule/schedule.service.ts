@@ -1,11 +1,15 @@
 import { Prisma } from "../../../../generated/prisma/client";
-import type { UserRole } from "../../../../generated/prisma/enums";
+import type {
+	ScheduleStatus,
+	UserRole,
+} from "../../../../generated/prisma/enums";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../utils/AppError";
 import type {
 	CreateScheduleInput,
 	ListSchedulesQuery,
 	UpdateScheduleInput,
+	UpdateScheduleStatusInput,
 } from "./schedule.validation";
 
 const list = async (query: ListSchedulesQuery, role: UserRole) => {
@@ -190,4 +194,93 @@ const update = async (
 	}
 };
 
-export const ScheduleService = { list, create, update };
+const allowedStatusChanges: Record<ScheduleStatus, ScheduleStatus[]> = {
+	DRAFT: ["PUBLISHED", "CANCELLED"],
+	PUBLISHED: ["IN_PROGRESS", "CANCELLED"],
+	IN_PROGRESS: ["COMPLETED", "CANCELLED"],
+	COMPLETED: [],
+	CANCELLED: [],
+};
+
+const updateStatus = async (
+	actorId: string,
+	scheduleId: string,
+	input: UpdateScheduleStatusInput,
+) => {
+	try {
+		return await prisma.$transaction(
+			async (tx) => {
+				const existingSchedule = await tx.loadSheddingSchedule.findFirst({
+					where: { id: scheduleId, deletedAt: null },
+					select: { areaId: true, startsAt: true, endsAt: true, status: true },
+				});
+				if (!existingSchedule) {
+					throw new AppError(404, "Schedule not found");
+				}
+				if (
+					!allowedStatusChanges[existingSchedule.status].includes(input.status)
+				) {
+					throw new AppError(409, "Invalid schedule status change");
+				}
+
+				if (input.status === "PUBLISHED") {
+					const area = await tx.area.findFirst({
+						where: { id: existingSchedule.areaId, deletedAt: null },
+						select: { id: true },
+					});
+					if (!area) {
+						throw new AppError(404, "Area not found");
+					}
+
+					const overlappingSchedule = await tx.loadSheddingSchedule.findFirst({
+						where: {
+							id: { not: scheduleId },
+							areaId: existingSchedule.areaId,
+							deletedAt: null,
+							NOT: { status: "CANCELLED" },
+							startsAt: { lt: existingSchedule.endsAt },
+							endsAt: { gt: existingSchedule.startsAt },
+						},
+						select: { id: true },
+					});
+					if (overlappingSchedule) {
+						throw new AppError(
+							409,
+							"Schedule overlaps with an existing schedule in this area",
+						);
+					}
+				}
+
+				const schedule = await tx.loadSheddingSchedule.update({
+					where: { id: scheduleId },
+					data: { status: input.status },
+				});
+				await tx.auditLog.create({
+					data: {
+						actorId,
+						action: "SCHEDULE_STATUS_CHANGED",
+						entityType: "LOAD_SHEDDING_SCHEDULE",
+						entityId: schedule.id,
+						details: {
+							previousStatus: existingSchedule.status,
+							newStatus: input.status,
+						},
+					},
+				});
+
+				return schedule;
+			},
+			{ isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+		);
+	} catch (error) {
+		if (
+			error instanceof Prisma.PrismaClientKnownRequestError &&
+			error.code === "P2034"
+		) {
+			throw new AppError(409, "Schedule conflict; please retry");
+		}
+		throw error;
+	}
+};
+
+export const ScheduleService = { list, create, update, updateStatus };

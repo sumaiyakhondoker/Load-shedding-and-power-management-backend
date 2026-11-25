@@ -8,6 +8,7 @@ import {
 	scheduleIdSchema,
 	type CreateScheduleInput,
 	type UpdateScheduleInput,
+	type UpdateScheduleStatusInput,
 } from "./schedule.validation";
 
 const list = catchAsync(async (req, res) => {
@@ -62,8 +63,28 @@ const update = catchAsync(async (req, res) => {
 	});
 });
 
+const updateStatus = catchAsync(async (req, res) => {
+	if (!req.user) {
+		throw new AppError(401, "Authentication required");
+	}
+
+	const scheduleId = scheduleIdSchema.parse(req.params.id);
+	const schedule = await ScheduleService.updateStatus(
+		req.user.id,
+		scheduleId,
+		req.body as UpdateScheduleStatusInput,
+	);
+	sendResponse({
+		res,
+		statusCode: 200,
+		message: "Schedule status updated successfully!",
+		data: schedule,
+	});
+});
+
 export const ScheduleController: {
 	list: RequestHandler;
 	create: RequestHandler;
 	update: RequestHandler;
-} = { list, create, update };
+	updateStatus: RequestHandler;
+} = { list, create, update, updateStatus };
