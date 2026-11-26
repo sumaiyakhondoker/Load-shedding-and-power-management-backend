@@ -8,6 +8,7 @@ import {
 	outageReportIdSchema,
 	type AssignOutageReportInput,
 	type CreateOutageReportInput,
+	type UpdateOutageReportStatusInput,
 } from "./outageReport.validation";
 
 const list = catchAsync(async (req, res) => {
@@ -80,9 +81,29 @@ const assign = catchAsync(async (req, res) => {
 	});
 });
 
+const updateStatus = catchAsync(async (req, res) => {
+	if (!req.user) {
+		throw new AppError(401, "Authentication required");
+	}
+
+	const reportId = outageReportIdSchema.parse(req.params.id);
+	const report = await OutageReportService.updateStatus(
+		req.user.id,
+		reportId,
+		req.body as UpdateOutageReportStatusInput,
+	);
+	sendResponse({
+		res,
+		statusCode: 200,
+		message: "Outage report status updated successfully!",
+		data: report,
+	});
+});
+
 export const OutageReportController: {
 	list: RequestHandler;
 	getById: RequestHandler;
 	create: RequestHandler;
 	assign: RequestHandler;
-} = { list, getById, create, assign };
+	updateStatus: RequestHandler;
+} = { list, getById, create, assign, updateStatus };

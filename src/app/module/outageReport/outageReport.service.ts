@@ -6,6 +6,7 @@ import type {
 	CreateOutageReportInput,
 	AssignOutageReportInput,
 	ListOutageReportsQuery,
+	UpdateOutageReportStatusInput,
 } from "./outageReport.validation";
 
 const list = async (
@@ -195,4 +196,71 @@ const assign = async (
 	});
 };
 
-export const OutageReportService = { list, getById, create, assign };
+const updateStatus = async (
+	actorId: string,
+	reportId: string,
+	input: UpdateOutageReportStatusInput,
+) => {
+	return prisma.$transaction(async (tx) => {
+		const existingReport = await tx.outageReport.findFirst({
+			where: { id: reportId, deletedAt: null, assignedTechnicianId: actorId },
+			select: { status: true },
+		});
+		if (!existingReport) {
+			throw new AppError(404, "Assigned outage report not found");
+		}
+		if (
+			(existingReport.status !== "ASSIGNED" ||
+				input.status !== "IN_PROGRESS") &&
+			(existingReport.status !== "IN_PROGRESS" || input.status !== "RESOLVED")
+		) {
+			throw new AppError(409, "Invalid outage report status change");
+		}
+
+		const updated = await tx.outageReport.updateMany({
+			where: {
+				id: reportId,
+				deletedAt: null,
+				assignedTechnicianId: actorId,
+				status: existingReport.status,
+			},
+			data:
+				input.status === "RESOLVED"
+					? {
+							status: "RESOLVED",
+							resolvedAt: new Date(),
+							resolutionNote: input.resolutionNote,
+						}
+					: { status: "IN_PROGRESS" },
+		});
+		if (updated.count === 0) {
+			throw new AppError(409, "Outage report changed; please retry");
+		}
+
+		const report = await tx.outageReport.findUniqueOrThrow({
+			where: { id: reportId },
+		});
+		await tx.auditLog.create({
+			data: {
+				actorId,
+				action: "OUTAGE_REPORT_STATUS_CHANGED",
+				entityType: "OUTAGE_REPORT",
+				entityId: reportId,
+				details: {
+					previousStatus: existingReport.status,
+					newStatus: input.status,
+				},
+			},
+		});
+
+		return report;
+	});
+};
+
+export const OutageReportService = {
+	list,
+	getById,
+	create,
+	assign,
+	updateStatus,
+};

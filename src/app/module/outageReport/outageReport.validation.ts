@@ -38,3 +38,17 @@ export const assignOutageReportSchema = z
 	.strict();
 
 export type AssignOutageReportInput = z.infer<typeof assignOutageReportSchema>;
+
+export const updateOutageReportStatusSchema = z.discriminatedUnion("status", [
+	z.object({ status: z.literal("IN_PROGRESS") }).strict(),
+	z
+		.object({
+			status: z.literal("RESOLVED"),
+			resolutionNote: z.string().trim().min(1, "Resolution note is required"),
+		})
+		.strict(),
+]);
+
+export type UpdateOutageReportStatusInput = z.infer<
+	typeof updateOutageReportStatusSchema
+>;

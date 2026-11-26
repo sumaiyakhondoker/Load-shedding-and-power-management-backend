@@ -5,6 +5,7 @@ import { OutageReportController } from "./outageReport.controller";
 import {
 	assignOutageReportSchema,
 	createOutageReportSchema,
+	updateOutageReportStatusSchema,
 } from "./outageReport.validation";
 
 const router = Router();
@@ -30,6 +31,12 @@ router.patch(
 	auth("ADMIN"),
 	validateRequest(assignOutageReportSchema),
 	OutageReportController.assign,
+);
+router.patch(
+	"/:id/status",
+	auth("TECHNICIAN"),
+	validateRequest(updateOutageReportStatusSchema),
+	OutageReportController.updateStatus,
 );
 
 export const OutageReportRoutes: RouterType = router;
