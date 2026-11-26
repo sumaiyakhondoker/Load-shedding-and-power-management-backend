@@ -5,13 +5,15 @@ import { sendResponse } from "../../utils/sendResponse";
 import type { LoginInput, RegisterInput } from "./auth.interface";
 import { AuthService } from "./auth.service";
 
+const refreshTokenCookieOptions = {
+	httpOnly: true,
+	secure: config.node_env === "production",
+	sameSite: "lax" as const,
+	path: "/api/v1/auth/refresh-token",
+};
+
 const setRefreshTokenCookie = (res: Response, token: string) => {
-	res.cookie("refreshToken", token, {
-		httpOnly: true,
-		secure: config.node_env === "production",
-		sameSite: "lax",
-		path: "/api/v1/auth/refresh-token",
-	});
+	res.cookie("refreshToken", token, refreshTokenCookieOptions);
 };
 
 const register = catchAsync(async (req, res) => {
@@ -50,12 +52,24 @@ const refreshToken = catchAsync(async (req, res) => {
 	});
 });
 
+const logout: RequestHandler = (req, res) => {
+	res.clearCookie("refreshToken", refreshTokenCookieOptions);
+	sendResponse({
+		res,
+		statusCode: 200,
+		message: "User logged out successfully!",
+		data: null,
+	});
+};
+
 export const AuthController: {
 	register: RequestHandler;
 	login: RequestHandler;
 	refreshToken: RequestHandler;
+	logout: RequestHandler;
 } = {
 	register,
 	login,
 	refreshToken,
+	logout,
 };
