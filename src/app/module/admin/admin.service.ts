@@ -79,6 +79,40 @@ const listAuditLogs = async (query: ListAuditLogsQuery) => {
 	};
 };
 
+const getDashboardStats = async () => {
+	const [
+		totalUsers,
+		totalZones,
+		totalSchedules,
+		totalReports,
+		openReports,
+		resolvedReports,
+	] = await prisma.$transaction([
+		prisma.user.count({ where: { deletedAt: null } }),
+		prisma.distributionZone.count({ where: { deletedAt: null } }),
+		prisma.loadSheddingSchedule.count({ where: { deletedAt: null } }),
+		prisma.outageReport.count({ where: { deletedAt: null } }),
+		prisma.outageReport.count({
+			where: {
+				deletedAt: null,
+				status: { in: ["REPORTED", "ASSIGNED", "IN_PROGRESS"] },
+			},
+		}),
+		prisma.outageReport.count({
+			where: { deletedAt: null, status: "RESOLVED" },
+		}),
+	]);
+
+	return {
+		totalUsers,
+		totalZones,
+		totalSchedules,
+		totalReports,
+		openReports,
+		resolvedReports,
+	};
+};
+
 const updateUserRole = async (
 	actorId: string,
 	targetUserId: string,
@@ -128,4 +162,9 @@ const updateUserRole = async (
 	return result;
 };
 
-export const AdminService = { listUsers, listAuditLogs, updateUserRole };
+export const AdminService = {
+	listUsers,
+	listAuditLogs,
+	getDashboardStats,
+	updateUserRole,
+};

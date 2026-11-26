@@ -24,6 +24,16 @@ const listAuditLogs = catchAsync(async (req, res) => {
 	sendResponse({ res, statusCode: 200, message, data: result });
 });
 
+const getDashboardStats = catchAsync(async (req, res) => {
+	const stats = await AdminService.getDashboardStats();
+	sendResponse({
+		res,
+		statusCode: 200,
+		message: "Dashboard stats retrieved successfully!",
+		data: stats,
+	});
+});
+
 const listUsers = catchAsync(async (req, res) => {
 	const query = listUsersSchema.parse(req.query);
 	const result = await AdminService.listUsers(query);
@@ -60,10 +70,12 @@ const updateUserRole = catchAsync(async (req, res) => {
 
 export const AdminController: {
 	listAuditLogs: RequestHandler;
+	getDashboardStats: RequestHandler;
 	listUsers: RequestHandler;
 	updateUserRole: RequestHandler;
 } = {
 	listAuditLogs,
+	getDashboardStats,
 	listUsers,
 	updateUserRole,
 };

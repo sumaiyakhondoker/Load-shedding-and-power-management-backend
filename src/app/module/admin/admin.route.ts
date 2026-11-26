@@ -8,6 +8,11 @@ const router = Router();
 
 router.get("/users", auth("ADMIN"), AdminController.listUsers);
 router.get("/audit-logs", auth("ADMIN"), AdminController.listAuditLogs);
+router.get(
+	"/dashboard-stats",
+	auth("ADMIN"),
+	AdminController.getDashboardStats,
+);
 router.patch(
 	"/users/:id/role",
 	auth("ADMIN"),
