@@ -1,7 +1,11 @@
 import type { Prisma } from "../../../../generated/prisma/client";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../utils/AppError";
-import type { ListUsersQuery, UpdateUserRoleInput } from "./admin.validation";
+import type {
+	ListAuditLogsQuery,
+	ListUsersQuery,
+	UpdateUserRoleInput,
+} from "./admin.validation";
 
 const listUsers = async (query: ListUsersQuery) => {
 	const where: Prisma.UserWhereInput = {
@@ -36,6 +40,36 @@ const listUsers = async (query: ListUsersQuery) => {
 
 	return {
 		users,
+		meta: {
+			page: query.page,
+			limit: query.limit,
+			total,
+			totalPages: Math.ceil(total / query.limit),
+		},
+	};
+};
+
+const listAuditLogs = async (query: ListAuditLogsQuery) => {
+	const [auditLogs, total] = await prisma.$transaction([
+		prisma.auditLog.findMany({
+			select: {
+				id: true,
+				actorId: true,
+				action: true,
+				entityType: true,
+				entityId: true,
+				details: true,
+				createdAt: true,
+			},
+			orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+			skip: (query.page - 1) * query.limit,
+			take: query.limit,
+		}),
+		prisma.auditLog.count(),
+	]);
+
+	return {
+		auditLogs,
 		meta: {
 			page: query.page,
 			limit: query.limit,
@@ -94,4 +128,4 @@ const updateUserRole = async (
 	return result;
 };
 
-export const AdminService = { listUsers, updateUserRole };
+export const AdminService = { listUsers, listAuditLogs, updateUserRole };

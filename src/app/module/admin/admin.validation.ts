@@ -12,6 +12,15 @@ export const listUsersSchema = z
 
 export type ListUsersQuery = z.infer<typeof listUsersSchema>;
 
+export const listAuditLogsSchema = z
+	.object({
+		page: z.coerce.number().int().min(1).max(100000).default(1),
+		limit: z.coerce.number().int().min(1).max(100).default(10),
+	})
+	.strict();
+
+export type ListAuditLogsQuery = z.infer<typeof listAuditLogsSchema>;
+
 export const userIdSchema = z.uuid();
 
 export const updateUserRoleSchema = z
