@@ -6,6 +6,7 @@ import { OutageReportService } from "./outageReport.service";
 import {
 	listOutageReportsSchema,
 	outageReportIdSchema,
+	type AssignOutageReportInput,
 	type CreateOutageReportInput,
 } from "./outageReport.validation";
 
@@ -60,8 +61,28 @@ const create = catchAsync(async (req, res) => {
 	});
 });
 
+const assign = catchAsync(async (req, res) => {
+	if (!req.user) {
+		throw new AppError(401, "Authentication required");
+	}
+
+	const reportId = outageReportIdSchema.parse(req.params.id);
+	const report = await OutageReportService.assign(
+		req.user.id,
+		reportId,
+		req.body as AssignOutageReportInput,
+	);
+	sendResponse({
+		res,
+		statusCode: 200,
+		message: "Outage report assigned successfully!",
+		data: report,
+	});
+});
+
 export const OutageReportController: {
 	list: RequestHandler;
 	getById: RequestHandler;
 	create: RequestHandler;
-} = { list, getById, create };
+	assign: RequestHandler;
+} = { list, getById, create, assign };

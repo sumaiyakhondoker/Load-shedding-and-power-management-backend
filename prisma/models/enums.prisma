@@ -14,7 +14,6 @@ enum ScheduleStatus {
 
 enum OutageStatus {
   REPORTED
-  UNDER_REVIEW
   ASSIGNED
   IN_PROGRESS
   RESOLVED

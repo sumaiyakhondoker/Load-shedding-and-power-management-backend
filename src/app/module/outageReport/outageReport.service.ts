@@ -4,6 +4,7 @@ import { prisma } from "../../lib/prisma";
 import { AppError } from "../../utils/AppError";
 import type {
 	CreateOutageReportInput,
+	AssignOutageReportInput,
 	ListOutageReportsQuery,
 } from "./outageReport.validation";
 
@@ -126,4 +127,72 @@ const create = async (customerId: string, input: CreateOutageReportInput) => {
 	});
 };
 
-export const OutageReportService = { list, getById, create };
+const assign = async (
+	actorId: string,
+	reportId: string,
+	input: AssignOutageReportInput,
+) => {
+	return prisma.$transaction(async (tx) => {
+		const existingReport = await tx.outageReport.findFirst({
+			where: { id: reportId, deletedAt: null },
+			select: { status: true, assignedTechnicianId: true },
+		});
+		if (!existingReport) {
+			throw new AppError(404, "Outage report not found");
+		}
+		if (!["REPORTED", "ASSIGNED"].includes(existingReport.status)) {
+			throw new AppError(409, "This outage report cannot be assigned now");
+		}
+		if (existingReport.assignedTechnicianId === input.technicianId) {
+			throw new AppError(
+				400,
+				"Outage report is already assigned to this technician",
+			);
+		}
+
+		const technician = await tx.user.findFirst({
+			where: { id: input.technicianId, role: "TECHNICIAN", deletedAt: null },
+			select: { id: true },
+		});
+		if (!technician) {
+			throw new AppError(404, "Active technician not found");
+		}
+
+		const updated = await tx.outageReport.updateMany({
+			where: {
+				id: reportId,
+				deletedAt: null,
+				status: existingReport.status,
+				assignedTechnicianId: existingReport.assignedTechnicianId,
+			},
+			data: {
+				assignedTechnicianId: input.technicianId,
+				assignedAt: new Date(),
+				status: "ASSIGNED",
+			},
+		});
+		if (updated.count === 0) {
+			throw new AppError(409, "Outage report changed; please retry");
+		}
+
+		const report = await tx.outageReport.findUniqueOrThrow({
+			where: { id: reportId },
+		});
+		await tx.auditLog.create({
+			data: {
+				actorId,
+				action: "OUTAGE_REPORT_ASSIGNED",
+				entityType: "OUTAGE_REPORT",
+				entityId: reportId,
+				details: {
+					previousTechnicianId: existingReport.assignedTechnicianId,
+					technicianId: input.technicianId,
+				},
+			},
+		});
+
+		return report;
+	});
+};
+
+export const OutageReportService = { list, getById, create, assign };

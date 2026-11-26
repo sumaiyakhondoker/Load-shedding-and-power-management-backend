@@ -32,3 +32,9 @@ export const listOutageReportsSchema = z
 export type ListOutageReportsQuery = z.infer<typeof listOutageReportsSchema>;
 
 export const outageReportIdSchema = z.uuid();
+
+export const assignOutageReportSchema = z
+	.object({ technicianId: z.uuid() })
+	.strict();
+
+export type AssignOutageReportInput = z.infer<typeof assignOutageReportSchema>;
