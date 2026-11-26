@@ -10,3 +10,13 @@ export const createAccessToken = (userId: string, role: string) => {
 		expiresIn: config.jwt_access_expires_in as SignOptions["expiresIn"],
 	});
 };
+
+export const createRefreshToken = (userId: string) => {
+	if (!config.jwt_refresh_secret) {
+		throw new Error("JWT refresh secret is missing");
+	}
+
+	return jwt.sign({ userId, type: "refresh" }, config.jwt_refresh_secret, {
+		expiresIn: config.jwt_refresh_expires_in as SignOptions["expiresIn"],
+	});
+};

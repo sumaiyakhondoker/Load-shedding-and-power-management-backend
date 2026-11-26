@@ -1,8 +1,10 @@
 import bcrypt from "bcrypt";
+import jwt, { type JwtPayload } from "jsonwebtoken";
+import { z } from "zod";
 import config from "../../../config";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../utils/AppError";
-import { createAccessToken } from "../../utils/jwt";
+import { createAccessToken, createRefreshToken } from "../../utils/jwt";
 import type { LoginInput, RegisterInput } from "./auth.interface";
 
 const publicUserFields = {
@@ -35,7 +37,11 @@ const register = async (input: RegisterInput) => {
 		select: publicUserFields,
 	});
 
-	return { user, accessToken: createAccessToken(user.id, user.role) };
+	return {
+		user,
+		accessToken: createAccessToken(user.id, user.role),
+		refreshToken: createRefreshToken(user.id),
+	};
 };
 
 const login = async (input: LoginInput) => {
@@ -67,7 +73,44 @@ const login = async (input: LoginInput) => {
 	return {
 		user: publicUser,
 		accessToken: createAccessToken(user.id, user.role),
+		refreshToken: createRefreshToken(user.id),
 	};
 };
 
-export const AuthService = { register, login };
+const refreshToken = async (token: string | undefined) => {
+	if (!token) {
+		throw new AppError(401, "Refresh token is required");
+	}
+	if (!config.jwt_refresh_secret) {
+		throw new Error("JWT refresh secret is missing");
+	}
+
+	let decoded: string | JwtPayload;
+	try {
+		decoded = jwt.verify(token, config.jwt_refresh_secret);
+	} catch {
+		throw new AppError(401, "Invalid or expired refresh token");
+	}
+
+	const userId = typeof decoded === "string" ? undefined : decoded.userId;
+	const tokenType = typeof decoded === "string" ? undefined : decoded.type;
+	if (
+		tokenType !== "refresh" ||
+		typeof userId !== "string" ||
+		!z.uuid().safeParse(userId).success
+	) {
+		throw new AppError(401, "Invalid or expired refresh token");
+	}
+
+	const user = await prisma.user.findUnique({
+		where: { id: userId },
+		select: { id: true, role: true, deletedAt: true },
+	});
+	if (!user || user.deletedAt) {
+		throw new AppError(401, "Authentication required");
+	}
+
+	return { accessToken: createAccessToken(user.id, user.role) };
+};
+
+export const AuthService = { register, login, refreshToken };

@@ -1,11 +1,24 @@
-import type { RequestHandler } from "express";
+import type { RequestHandler, Response } from "express";
+import config from "../../../config";
 import { catchAsync } from "../../utils/catchAsync";
 import { sendResponse } from "../../utils/sendResponse";
 import type { LoginInput, RegisterInput } from "./auth.interface";
 import { AuthService } from "./auth.service";
 
+const setRefreshTokenCookie = (res: Response, token: string) => {
+	res.cookie("refreshToken", token, {
+		httpOnly: true,
+		secure: config.node_env === "production",
+		sameSite: "lax",
+		path: "/api/v1/auth/refresh-token",
+	});
+};
+
 const register = catchAsync(async (req, res) => {
-	const result = await AuthService.register(req.body as RegisterInput);
+	const { refreshToken, ...result } = await AuthService.register(
+		req.body as RegisterInput,
+	);
+	setRefreshTokenCookie(res, refreshToken);
 	sendResponse({
 		res,
 		statusCode: 201,
@@ -15,7 +28,10 @@ const register = catchAsync(async (req, res) => {
 });
 
 const login = catchAsync(async (req, res) => {
-	const result = await AuthService.login(req.body as LoginInput);
+	const { refreshToken, ...result } = await AuthService.login(
+		req.body as LoginInput,
+	);
+	setRefreshTokenCookie(res, refreshToken);
 	sendResponse({
 		res,
 		statusCode: 200,
@@ -24,10 +40,22 @@ const login = catchAsync(async (req, res) => {
 	});
 });
 
+const refreshToken = catchAsync(async (req, res) => {
+	const result = await AuthService.refreshToken(req.cookies?.refreshToken);
+	sendResponse({
+		res,
+		statusCode: 200,
+		message: "Access token refreshed successfully!",
+		data: result,
+	});
+});
+
 export const AuthController: {
 	register: RequestHandler;
 	login: RequestHandler;
+	refreshToken: RequestHandler;
 } = {
 	register,
 	login,
+	refreshToken,
 };
