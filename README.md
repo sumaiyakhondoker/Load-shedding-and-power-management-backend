@@ -29,3 +29,11 @@ The existing admin seed uses `ADMIN_NAME`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD`. 
 ## Verification
 
 Run `pnpm typecheck`, `pnpm lint:check`, `pnpm build`, and `pnpm test:payment`. Import `postman/payment.postman_collection.json` to exercise payment requests. A real Checkout and signed webhook check additionally require valid Stripe Test Mode credentials, a running database, and Stripe CLI forwarding.
+
+## Vercel deployment
+
+The repository exports the Express app from `src/index.ts` for Vercel Functions. `src/server.ts` remains the local listener. Vercel should detect Express from the source entry point; do not set a `dist/server.js` build or route override. The production build runs `prisma generate` before `tsup`, so generated Prisma imports are present. Set the project root to this repository and set the framework to Express (or use auto detection). Keep the generated Prisma client and server bundle in the deployment output.
+
+Configure every name in `.env.example` in the Vercel project, using production database credentials, strong JWT secrets, the deployed frontend origin for `APP_URL`, and the frontend payment success and cancel URLs. Set `NODE_ENV=production`. Stripe settings remain optional until a payment endpoint is used. Use a pooled PostgreSQL connection string suited to serverless traffic. The Prisma adapter limits each function instance to two connections. Do not run seed or migrations on each function invocation.
+
+After confirming the intended database target and migration plan, run the existing migrations once with `pnpm exec prisma migrate deploy` in a controlled environment. Run `pnpm seed` once to create the admin account; demo seeding is disabled in production. Then deploy and verify the deployment is READY, responds to `/`, and serves `/api/v1/*` from a Vercel Function. Test the Stripe webhook using the deployed endpoint and its own `whsec_...` signing secret. The published Postman documentation may need its base URL and Stripe webhook endpoint updated to the deployment URL; the API response and payment field names remain unchanged.
