@@ -278,4 +278,3 @@ export const OutageReportService = {
 	assign,
 	updateStatus,
 };
-

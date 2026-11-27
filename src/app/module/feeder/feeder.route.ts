@@ -7,8 +7,18 @@ import { createFeederSchema, updateFeederSchema } from "./feeder.validation";
 const router = Router();
 
 router.get("/", FeederController.list);
-router.post("/", auth("ADMIN"), validateRequest(createFeederSchema), FeederController.create);
-router.patch("/:id", auth("ADMIN"), validateRequest(updateFeederSchema), FeederController.update);
+router.post(
+	"/",
+	auth("ADMIN"),
+	validateRequest(createFeederSchema),
+	FeederController.create,
+);
+router.patch(
+	"/:id",
+	auth("ADMIN"),
+	validateRequest(updateFeederSchema),
+	FeederController.update,
+);
 router.delete("/:id", auth("ADMIN"), FeederController.remove);
 
 export const FeederRoutes: RouterType = router;

@@ -1,7 +1,11 @@
 import type { Prisma } from "../../../../generated/prisma/client";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../utils/AppError";
-import type { CreateAreaInput, ListAreasQuery, UpdateAreaInput } from "./area.validation";
+import type {
+	CreateAreaInput,
+	ListAreasQuery,
+	UpdateAreaInput,
+} from "./area.validation";
 
 const list = async (query: ListAreasQuery) => {
 	const where: Prisma.AreaWhereInput = {
@@ -9,9 +13,9 @@ const list = async (query: ListAreasQuery) => {
 		feederId: query.feederId,
 		OR: query.search
 			? [
-				{ name: { contains: query.search, mode: "insensitive" } },
-				{ address: { contains: query.search, mode: "insensitive" } },
-			]
+					{ name: { contains: query.search, mode: "insensitive" } },
+					{ address: { contains: query.search, mode: "insensitive" } },
+				]
 			: undefined,
 	};
 
@@ -35,7 +39,12 @@ const list = async (query: ListAreasQuery) => {
 
 	return {
 		areas,
-		meta: { page: query.page, limit: query.limit, total, totalPages: Math.ceil(total / query.limit) },
+		meta: {
+			page: query.page,
+			limit: query.limit,
+			total,
+			totalPages: Math.ceil(total / query.limit),
+		},
 	};
 };
 
@@ -84,7 +93,11 @@ const create = async (actorId: string, input: CreateAreaInput) => {
 	});
 };
 
-const update = async (actorId: string, areaId: string, input: UpdateAreaInput) => {
+const update = async (
+	actorId: string,
+	areaId: string,
+	input: UpdateAreaInput,
+) => {
 	return prisma.$transaction(async (tx) => {
 		const existingArea = await tx.area.findFirst({
 			where: { id: areaId, deletedAt: null },

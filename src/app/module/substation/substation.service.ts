@@ -1,7 +1,11 @@
 import type { Prisma } from "../../../../generated/prisma/client";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../utils/AppError";
-import type { CreateSubstationInput, ListSubstationsQuery, UpdateSubstationInput } from "./substation.validation";
+import type {
+	CreateSubstationInput,
+	ListSubstationsQuery,
+	UpdateSubstationInput,
+} from "./substation.validation";
 
 const list = async (query: ListSubstationsQuery) => {
 	const where: Prisma.SubstationWhereInput = {
@@ -9,9 +13,9 @@ const list = async (query: ListSubstationsQuery) => {
 		zoneId: query.zoneId,
 		OR: query.search
 			? [
-				{ name: { contains: query.search, mode: "insensitive" } },
-				{ code: { contains: query.search, mode: "insensitive" } },
-			]
+					{ name: { contains: query.search, mode: "insensitive" } },
+					{ code: { contains: query.search, mode: "insensitive" } },
+				]
 			: undefined,
 	};
 
@@ -36,7 +40,12 @@ const list = async (query: ListSubstationsQuery) => {
 
 	return {
 		substations,
-		meta: { page: query.page, limit: query.limit, total, totalPages: Math.ceil(total / query.limit) },
+		meta: {
+			page: query.page,
+			limit: query.limit,
+			total,
+			totalPages: Math.ceil(total / query.limit),
+		},
 	};
 };
 
@@ -98,7 +107,11 @@ const create = async (actorId: string, input: CreateSubstationInput) => {
 	});
 };
 
-const update = async (actorId: string, substationId: string, input: UpdateSubstationInput) => {
+const update = async (
+	actorId: string,
+	substationId: string,
+	input: UpdateSubstationInput,
+) => {
 	return prisma.$transaction(async (tx) => {
 		const existingSubstation = await tx.substation.findFirst({
 			where: { id: substationId, deletedAt: null },
@@ -177,7 +190,10 @@ const remove = async (actorId: string, substationId: string) => {
 				action: "SUBSTATION_DELETED",
 				entityType: "SUBSTATION",
 				entityId: substation.id,
-				details: { name: existingSubstation.name, code: existingSubstation.code },
+				details: {
+					name: existingSubstation.name,
+					code: existingSubstation.code,
+				},
 			},
 		});
 

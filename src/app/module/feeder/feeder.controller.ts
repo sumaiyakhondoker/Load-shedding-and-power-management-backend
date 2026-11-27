@@ -3,7 +3,12 @@ import { AppError } from "../../utils/AppError";
 import { catchAsync } from "../../utils/catchAsync";
 import { sendResponse } from "../../utils/sendResponse";
 import { FeederService } from "./feeder.service";
-import { feederIdSchema, listFeedersSchema, type CreateFeederInput, type UpdateFeederInput } from "./feeder.validation";
+import {
+	feederIdSchema,
+	listFeedersSchema,
+	type CreateFeederInput,
+	type UpdateFeederInput,
+} from "./feeder.validation";
 
 const list = catchAsync(async (req, res) => {
 	const query = listFeedersSchema.parse(req.query);
@@ -22,8 +27,16 @@ const create = catchAsync(async (req, res) => {
 		throw new AppError(401, "Authentication required");
 	}
 
-	const feeder = await FeederService.create(req.user.id, req.body as CreateFeederInput);
-	sendResponse({ res, statusCode: 201, message: "Feeder created successfully!", data: feeder });
+	const feeder = await FeederService.create(
+		req.user.id,
+		req.body as CreateFeederInput,
+	);
+	sendResponse({
+		res,
+		statusCode: 201,
+		message: "Feeder created successfully!",
+		data: feeder,
+	});
 });
 
 const update = catchAsync(async (req, res) => {
@@ -32,8 +45,17 @@ const update = catchAsync(async (req, res) => {
 	}
 
 	const feederId = feederIdSchema.parse(req.params.id);
-	const feeder = await FeederService.update(req.user.id, feederId, req.body as UpdateFeederInput);
-	sendResponse({ res, statusCode: 200, message: "Feeder updated successfully!", data: feeder });
+	const feeder = await FeederService.update(
+		req.user.id,
+		feederId,
+		req.body as UpdateFeederInput,
+	);
+	sendResponse({
+		res,
+		statusCode: 200,
+		message: "Feeder updated successfully!",
+		data: feeder,
+	});
 });
 
 const remove = catchAsync(async (req, res) => {
@@ -43,7 +65,17 @@ const remove = catchAsync(async (req, res) => {
 
 	const feederId = feederIdSchema.parse(req.params.id);
 	const feeder = await FeederService.remove(req.user.id, feederId);
-	sendResponse({ res, statusCode: 200, message: "Feeder deleted successfully!", data: feeder });
+	sendResponse({
+		res,
+		statusCode: 200,
+		message: "Feeder deleted successfully!",
+		data: feeder,
+	});
 });
 
-export const FeederController: { list: RequestHandler; create: RequestHandler; update: RequestHandler; remove: RequestHandler } = { list, create, update, remove };
+export const FeederController: {
+	list: RequestHandler;
+	create: RequestHandler;
+	update: RequestHandler;
+	remove: RequestHandler;
+} = { list, create, update, remove };

@@ -3,7 +3,12 @@ import { AppError } from "../../utils/AppError";
 import { catchAsync } from "../../utils/catchAsync";
 import { sendResponse } from "../../utils/sendResponse";
 import { SubstationService } from "./substation.service";
-import { listSubstationsSchema, substationIdSchema, type CreateSubstationInput, type UpdateSubstationInput } from "./substation.validation";
+import {
+	listSubstationsSchema,
+	substationIdSchema,
+	type CreateSubstationInput,
+	type UpdateSubstationInput,
+} from "./substation.validation";
 
 const list = catchAsync(async (req, res) => {
 	const query = listSubstationsSchema.parse(req.query);
@@ -20,7 +25,12 @@ const list = catchAsync(async (req, res) => {
 const getById = catchAsync(async (req, res) => {
 	const substationId = substationIdSchema.parse(req.params.id);
 	const substation = await SubstationService.getById(substationId);
-	sendResponse({ res, statusCode: 200, message: "Substation details retrieved successfully!", data: substation });
+	sendResponse({
+		res,
+		statusCode: 200,
+		message: "Substation details retrieved successfully!",
+		data: substation,
+	});
 });
 
 const create = catchAsync(async (req, res) => {
@@ -51,7 +61,12 @@ const update = catchAsync(async (req, res) => {
 		substationId,
 		req.body as UpdateSubstationInput,
 	);
-	sendResponse({ res, statusCode: 200, message: "Substation updated successfully!", data: substation });
+	sendResponse({
+		res,
+		statusCode: 200,
+		message: "Substation updated successfully!",
+		data: substation,
+	});
 });
 
 const remove = catchAsync(async (req, res) => {
@@ -61,10 +76,21 @@ const remove = catchAsync(async (req, res) => {
 
 	const substationId = substationIdSchema.parse(req.params.id);
 	const substation = await SubstationService.remove(req.user.id, substationId);
-	sendResponse({ res, statusCode: 200, message: "Substation deleted successfully!", data: substation });
+	sendResponse({
+		res,
+		statusCode: 200,
+		message: "Substation deleted successfully!",
+		data: substation,
+	});
 });
 
-export const SubstationController: { list: RequestHandler; getById: RequestHandler; create: RequestHandler; update: RequestHandler; remove: RequestHandler } = {
+export const SubstationController: {
+	list: RequestHandler;
+	getById: RequestHandler;
+	create: RequestHandler;
+	update: RequestHandler;
+	remove: RequestHandler;
+} = {
 	list,
 	getById,
 	create,

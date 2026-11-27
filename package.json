@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsup src/server.ts --format esm --platform node --out-dir dist",
+    "build": "tsup",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
     "format:check":"pnpm biome format ./src",

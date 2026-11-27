@@ -1,7 +1,11 @@
 import type { Prisma } from "../../../../generated/prisma/client";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../utils/AppError";
-import type { CreateFeederInput, ListFeedersQuery, UpdateFeederInput } from "./feeder.validation";
+import type {
+	CreateFeederInput,
+	ListFeedersQuery,
+	UpdateFeederInput,
+} from "./feeder.validation";
 
 const list = async (query: ListFeedersQuery) => {
 	const where: Prisma.FeederWhereInput = {
@@ -9,9 +13,9 @@ const list = async (query: ListFeedersQuery) => {
 		substationId: query.substationId,
 		OR: query.search
 			? [
-				{ name: { contains: query.search, mode: "insensitive" } },
-				{ code: { contains: query.search, mode: "insensitive" } },
-			]
+					{ name: { contains: query.search, mode: "insensitive" } },
+					{ code: { contains: query.search, mode: "insensitive" } },
+				]
 			: undefined,
 	};
 
@@ -35,7 +39,12 @@ const list = async (query: ListFeedersQuery) => {
 
 	return {
 		feeders,
-		meta: { page: query.page, limit: query.limit, total, totalPages: Math.ceil(total / query.limit) },
+		meta: {
+			page: query.page,
+			limit: query.limit,
+			total,
+			totalPages: Math.ceil(total / query.limit),
+		},
 	};
 };
 
@@ -50,7 +59,12 @@ const create = async (actorId: string, input: CreateFeederInput) => {
 		}
 
 		const existingCode = await tx.feeder.findUnique({
-			where: { substationId_code: { substationId: input.substationId, code: input.code } },
+			where: {
+				substationId_code: {
+					substationId: input.substationId,
+					code: input.code,
+				},
+			},
 			select: { id: true },
 		});
 		if (existingCode) {
@@ -65,7 +79,11 @@ const create = async (actorId: string, input: CreateFeederInput) => {
 				action: "FEEDER_CREATED",
 				entityType: "FEEDER",
 				entityId: feeder.id,
-				details: { name: feeder.name, code: feeder.code, substationId: feeder.substationId },
+				details: {
+					name: feeder.name,
+					code: feeder.code,
+					substationId: feeder.substationId,
+				},
 			},
 		});
 
@@ -73,7 +91,11 @@ const create = async (actorId: string, input: CreateFeederInput) => {
 	});
 };
 
-const update = async (actorId: string, feederId: string, input: UpdateFeederInput) => {
+const update = async (
+	actorId: string,
+	feederId: string,
+	input: UpdateFeederInput,
+) => {
 	return prisma.$transaction(async (tx) => {
 		const existingFeeder = await tx.feeder.findFirst({
 			where: { id: feederId, deletedAt: null },
@@ -101,7 +123,10 @@ const update = async (actorId: string, feederId: string, input: UpdateFeederInpu
 				select: { id: true },
 			});
 			if (existingCode && existingCode.id !== feederId) {
-				throw new AppError(409, "Feeder code already exists in this substation");
+				throw new AppError(
+					409,
+					"Feeder code already exists in this substation",
+				);
 			}
 		}
 
