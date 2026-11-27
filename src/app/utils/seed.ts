@@ -33,3 +33,27 @@ export const seedAdmin = async () => {
 
 	console.log("Admin account created.");
 };
+
+export const seedDemoUsers = async () => {
+	if (process.env.DEMO_ACCOUNTS_ENABLED !== "true") return;
+	if (config.node_env === "production") {
+		throw new Error("Demo accounts cannot be seeded in production");
+	}
+
+	for (const role of [UserRole.TECHNICIAN, UserRole.CUSTOMER] as const) {
+		const email = process.env[`DEMO_${role}_EMAIL`]?.trim().toLowerCase();
+		const password = process.env[`DEMO_${role}_PASSWORD`];
+		if (!email || !password || password.length < 8) {
+			throw new Error(`Demo ${role} email or password is missing or invalid`);
+		}
+		const existing = await prisma.user.findUnique({ where: { email } });
+		if (existing) {
+			if (existing.role !== role || existing.deletedAt || !existing.passwordHash) {
+				throw new Error(`Demo ${role} email belongs to another account`);
+			}
+			continue;
+		}
+		const passwordHash = await bcrypt.hash(password, Number(config.bcrypt_salt_rounds) || 10);
+		await prisma.user.create({ data: { name: `Demo ${role.toLowerCase()}`, email, passwordHash, role } });
+	}
+};
