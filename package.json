@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit",
     "test:payment": "node --import tsx --experimental-test-module-mocks --test tests/payment.test.mjs",
     "test:auth": "node --import tsx --experimental-test-module-mocks --test tests/auth.test.mjs",
-    "vercel-build": "pnpm build && mkdir -p public",
+    "vercel-build": "pnpm build",
     "format:check":"pnpm biome format ./src",
     "format:fix":"pnpm biome format --write ./src",
     "lint:check":"pnpm biome lint ./src",

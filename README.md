@@ -36,7 +36,7 @@ Run `pnpm typecheck`, `pnpm lint:check`, `pnpm build`, and `pnpm test:payment`. 
 
 ## Vercel deployment
 
-The repository exports the Express app from `src/index.ts` for Vercel Functions. `src/server.ts` remains the local listener. Deployments must include the generated Prisma client and bundle the app for the Vercel Node runtime; do not route requests to an unbundled `src/app` ESM module. `api/index.ts` is the Vercel function entry point and imports the bundled `dist/app.js`.
+`api/index.ts` is the Vercel Function entry point and imports the bundled `dist/app.js`; `src/server.ts` remains the local listener. The Vercel build command runs `pnpm build`, which generates the Prisma client before tsup bundles the Express app. The function includes `dist/**` so the built ESM app is present at runtime. No static output directory is required for this serverless API; do not configure an empty `public` directory or create one as a deployment workaround.
 
 Configure every name in `.env.example` in the Vercel project, using production database credentials, strong JWT secrets, the deployed frontend origin for `APP_URL`, and the frontend payment success and cancel URLs. Set `NODE_ENV=production`. Stripe settings remain optional until a payment endpoint is used. Use a pooled PostgreSQL connection string suited to serverless traffic. The Prisma adapter limits each function instance to two connections. Do not run seed or migrations on each function invocation.
 
