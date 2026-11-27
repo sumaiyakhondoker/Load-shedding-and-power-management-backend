@@ -17,16 +17,15 @@ import { SubstationRoutes } from "./app/module/substation/substation.route";
 import { AppError } from "./app/utils/AppError";
 import { sendResponse } from "./app/utils/sendResponse";
 import { DistributionZoneRoutes } from "./app/module/distributionZone/distributionZone.route";
+import config from "./config";
 
 const app: Application = express();
-
-const allowedOrigins = ["http://localhost:3000"];
 
 app.use(helmet());
 
 app.use(
 	cors({
-		origin: allowedOrigins,
+		origin: config.app_url,
 		credentials: true,
 		methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
 		allowedHeaders: ["Content-Type", "Authorization"],

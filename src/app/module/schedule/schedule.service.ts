@@ -18,6 +18,10 @@ const list = async (query: ListSchedulesQuery, role: UserRole) => {
 		areaId: query.areaId,
 		status: query.status,
 		NOT: role === "ADMIN" ? undefined : { status: "DRAFT" },
+		OR:
+			role === "ADMIN"
+				? undefined
+				: [{ endsAt: { gt: new Date() } }, { status: "IN_PROGRESS" }],
 	};
 
 	const [schedules, total] = await prisma.$transaction([
@@ -196,7 +200,7 @@ const update = async (
 
 const allowedStatusChanges: Record<ScheduleStatus, ScheduleStatus[]> = {
 	DRAFT: ["PUBLISHED", "CANCELLED"],
-	PUBLISHED: ["IN_PROGRESS", "CANCELLED"],
+	PUBLISHED: ["IN_PROGRESS", "COMPLETED", "CANCELLED"],
 	IN_PROGRESS: ["COMPLETED", "CANCELLED"],
 	COMPLETED: [],
 	CANCELLED: [],
@@ -222,8 +226,22 @@ const updateStatus = async (
 				) {
 					throw new AppError(409, "Invalid schedule status change");
 				}
+				if (
+					existingSchedule.status === "PUBLISHED" &&
+					input.status === "COMPLETED" &&
+					existingSchedule.endsAt > new Date()
+				) {
+					throw new AppError(409, "Schedule has not ended yet");
+				}
 
 				if (input.status === "PUBLISHED") {
+					if (existingSchedule.startsAt <= new Date()) {
+						throw new AppError(
+							409,
+							"Cannot publish a schedule that has already started",
+						);
+					}
+
 					const area = await tx.area.findFirst({
 						where: { id: existingSchedule.areaId, deletedAt: null },
 						select: { id: true },
