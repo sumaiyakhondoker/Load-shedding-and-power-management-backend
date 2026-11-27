@@ -10,6 +10,10 @@ import { AreaRoutes } from "./app/module/area/area.route";
 import { AuthRoutes } from "./app/module/auth/auth.route";
 import { FeederRoutes } from "./app/module/feeder/feeder.route";
 import { OutageReportRoutes } from "./app/module/outageReport/outageReport.route";
+import {
+	PaymentRoutes,
+	PaymentWebhookRoutes,
+} from "./app/module/payment/payment.route";
 import { ScheduleRoutes } from "./app/module/schedule/schedule.route";
 
 import { UserRoutes } from "./app/module/user/user.route";
@@ -31,6 +35,8 @@ app.use(
 		allowedHeaders: ["Content-Type", "Authorization"],
 	}),
 );
+
+app.use("/api/v1/payments", PaymentWebhookRoutes);
 
 app.use(
 	"/api",
@@ -65,6 +71,7 @@ app.use("/api/v1/feeders", FeederRoutes);
 app.use("/api/v1/areas", AreaRoutes);
 app.use("/api/v1/schedules", ScheduleRoutes);
 app.use("/api/v1/outage-reports", OutageReportRoutes);
+app.use("/api/v1/payments", PaymentRoutes);
 
 app.use(notFound);
 app.use(globalErrorHandler);
