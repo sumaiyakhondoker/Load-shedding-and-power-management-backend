@@ -14,10 +14,12 @@ const list = catchAsync(async (req, res) => {
 	const query = listFeedersSchema.parse(req.query);
 	const result = await FeederService.list(query);
 	let resMessage: string;
-	if (result.meta.total > 0) {
-		resMessage = "Feeders retrieved successfully!";
-	} else {
+	if (result.meta.total === 0) {
 		resMessage = "No feeders found according to your searching.";
+	} else if (result.feeders.length === 0) {
+		resMessage = "No feeders found on this page. Try an earlier page.";
+	} else {
+		resMessage = "Feeders retrieved successfully!";
 	}
 	sendResponse({ res, statusCode: 200, message: resMessage, data: result });
 });

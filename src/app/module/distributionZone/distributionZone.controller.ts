@@ -14,11 +14,13 @@ const list = catchAsync(async (req, res) => {
 	const query = listDistributionZonesSchema.parse(req.query);
 	const result = await DistributionZoneService.list(query);
 	let resMessage: string;
-	if (result.meta.total > 0) {
-		// console.log('length: ',result.zones.length);
-		resMessage = "Distribution zones retrieved successfully!";
-	} else {
+	if (result.meta.total === 0) {
 		resMessage = "No distribution zone found according to your searching.";
+	} else if (result.zones.length === 0) {
+		resMessage =
+			"No distribution zones found on this page. Try an earlier page.";
+	} else {
+		resMessage = "Distribution zones retrieved successfully!";
 	}
 	sendResponse({ res, statusCode: 200, message: resMessage, data: result });
 });

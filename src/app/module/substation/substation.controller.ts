@@ -14,10 +14,12 @@ const list = catchAsync(async (req, res) => {
 	const query = listSubstationsSchema.parse(req.query);
 	const result = await SubstationService.list(query);
 	let resMessage: string;
-	if (result.meta.total > 0) {
-		resMessage = "All substations retrieved successfully!";
-	} else {
+	if (result.meta.total === 0) {
 		resMessage = "No substations found according to your searching.";
+	} else if (result.substations.length === 0) {
+		resMessage = "No substations found on this page. Try an earlier page.";
+	} else {
+		resMessage = "All substations retrieved successfully!";
 	}
 	sendResponse({ res, statusCode: 200, message: resMessage, data: result });
 });
