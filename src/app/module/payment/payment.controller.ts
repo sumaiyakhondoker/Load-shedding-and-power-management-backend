@@ -21,7 +21,7 @@ const initiate = catchAsync(async (req, res) => {
 	sendResponse({
 		res,
 		statusCode: 201,
-		message: "Payment checkout created successfully!",
+		message: "Checkout session created successfully",
 		data: result,
 	});
 });

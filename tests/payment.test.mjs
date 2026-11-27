@@ -113,6 +113,21 @@ test("Stripe payment endpoints", async (t) => {
 			: "invalid";
 		return request("/webhook", { method: "POST", body: JSON.parse(payload), headers: { "stripe-signature": signature } });
 	};
+	await t.test("public registration rejects technician role and browser preflight permits idempotency key", async () => {
+		const registration = await fetch(`http://127.0.0.1:${server.address().port}/api/v1/auth/register`, {
+			method: "POST",
+			headers: { "content-type": "application/json" },
+			body: JSON.stringify({ name: "Untrusted", email: "untrusted@test.example", password: "password123", role: "TECHNICIAN" }),
+		});
+		assert.equal(registration.status, 400);
+		assert.equal(await prisma.user.count({ where: { email: "untrusted@test.example" } }), 0);
+		const preflight = await fetch(`${base}/initiate`, {
+			method: "OPTIONS",
+			headers: { origin: "http://localhost:3000", "access-control-request-method": "POST", "access-control-request-headers": "authorization,content-type,idempotency-key" },
+		});
+		assert.equal(preflight.status, 204);
+		assert.match(preflight.headers.get("access-control-allow-headers") ?? "", /Idempotency-Key/i);
+	});
 
 	await t.test("requires customer authentication and rejects client supplied payment fields", async () => {
 		assert.equal((await request("/initiate", { method: "POST", body: {}, headers: { "idempotency-key": randomUUID() } })).status, 401);

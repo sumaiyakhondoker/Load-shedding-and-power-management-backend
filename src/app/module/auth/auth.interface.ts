@@ -2,7 +2,7 @@ export type RegisterInput = {
 	name: string;
 	email: string;
 	password: string;
-	role?: "CUSTOMER" | "TECHNICIAN";
+	role?: "CUSTOMER";
 };
 
 export type LoginInput = {

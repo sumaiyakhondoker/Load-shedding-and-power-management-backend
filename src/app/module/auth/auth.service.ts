@@ -42,7 +42,7 @@ const register = async (input: RegisterInput) => {
 			name: input.name,
 			email,
 			passwordHash,
-			role: input.role ?? "CUSTOMER",
+			role: "CUSTOMER",
 		},
 		select: publicUserFields,
 	});
