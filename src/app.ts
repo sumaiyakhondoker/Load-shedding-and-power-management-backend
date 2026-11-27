@@ -26,6 +26,7 @@ import config from "./config";
 const app: Application = express();
 const trustedFrontendOrigin = new URL(config.app_url).origin;
 
+app.set("trust proxy", 1);
 app.use(helmet());
 
 app.use(

@@ -24,10 +24,7 @@ const demoAccount = (role: "ADMIN" | "TECHNICIAN" | "CUSTOMER") => {
 const demoDatabaseUrl = demoAccountsEnabled
 	? required("DEMO_DATABASE_URL")
 	: undefined;
-if (
-	demoDatabaseUrl &&
-	demoDatabaseUrl === process.env.DATABASE_URL?.trim()
-) {
+if (demoDatabaseUrl && demoDatabaseUrl === process.env.DATABASE_URL?.trim()) {
 	throw new Error("DEMO_DATABASE_URL must be separate from DATABASE_URL");
 }
 

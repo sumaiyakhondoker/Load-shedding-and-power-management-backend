@@ -104,6 +104,7 @@ const tokenFor = (email, overrides = {}) => {
 test("Google sign-in, demo roles, session cookies, and authorization", async (t) => {
 	await prisma.$connect();
 	await seedDemoUsers();
+	assert.equal(app.get("trust proxy"), 1);
 	const server = app.listen(0, "127.0.0.1");
 	await once(server, "listening");
 	const base = `http://127.0.0.1:${server.address().port}/api/v1`;
