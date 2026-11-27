@@ -1,0 +1,17 @@
+{
+  "info": { "name": "GRIDLINE Stripe payments", "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json" },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "customerToken", "value": "" },
+    { "key": "adminToken", "value": "" },
+    { "key": "paymentId", "value": "" },
+    { "key": "idempotencyKey", "value": "" }
+  ],
+  "item": [
+    { "name": "Initiate checkout (customer)", "request": { "method": "POST", "header": [ { "key": "Authorization", "value": "Bearer {{customerToken}}" }, { "key": "Idempotency-Key", "value": "{{idempotencyKey}}" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/v1/payments/initiate" } },
+    { "name": "My payments (customer)", "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{customerToken}}" } ], "url": "{{baseUrl}}/api/v1/payments?page=1&limit=10" } },
+    { "name": "Payment details (customer)", "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{customerToken}}" } ], "url": "{{baseUrl}}/api/v1/payments/{{paymentId}}" } },
+    { "name": "All payments (admin)", "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{adminToken}}" } ], "url": "{{baseUrl}}/api/v1/payments?page=1&limit=10" } },
+    { "name": "Invalid webhook signature (400)", "request": { "method": "POST", "header": [ { "key": "Stripe-Signature", "value": "invalid" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/v1/payments/webhook" } }
+  ]
+}
