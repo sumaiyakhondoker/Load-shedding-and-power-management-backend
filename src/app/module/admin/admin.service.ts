@@ -168,3 +168,7 @@ export const AdminService = {
 	getDashboardStats,
 	updateUserRole,
 };
+
+
+// next task command
+// r baki api gular modde kon api e problem ace khuje ber koro,  tarpor 1ta kore solve kore thamba tarpor ami test kore comit korbo, erpr r 1ta feature shuru korba, emne prottekta api valo moton test korba, deploy er ager shob testing tmr upore chere dilam, ami direct deploy kore test korbo tokhon jodi kono error pai tmr khobor ace bole dilam test korar time e always mind it.

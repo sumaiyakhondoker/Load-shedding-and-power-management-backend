@@ -88,7 +88,7 @@ const updateStatus = catchAsync(async (req, res) => {
 
 	const reportId = outageReportIdSchema.parse(req.params.id);
 	const report = await OutageReportService.updateStatus(
-		req.user.id,
+		req.user,
 		reportId,
 		req.body as UpdateOutageReportStatusInput,
 	);

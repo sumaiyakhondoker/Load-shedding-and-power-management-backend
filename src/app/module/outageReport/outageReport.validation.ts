@@ -40,6 +40,7 @@ export const assignOutageReportSchema = z
 export type AssignOutageReportInput = z.infer<typeof assignOutageReportSchema>;
 
 export const updateOutageReportStatusSchema = z.discriminatedUnion("status", [
+	z.object({ status: z.literal("REJECTED") }).strict(),
 	z.object({ status: z.literal("IN_PROGRESS") }).strict(),
 	z
 		.object({

@@ -34,7 +34,7 @@ router.patch(
 );
 router.patch(
 	"/:id/status",
-	auth("TECHNICIAN"),
+	auth("ADMIN", "TECHNICIAN"),
 	validateRequest(updateOutageReportStatusSchema),
 	OutageReportController.updateStatus,
 );

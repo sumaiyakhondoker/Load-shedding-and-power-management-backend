@@ -197,22 +197,35 @@ const assign = async (
 };
 
 const updateStatus = async (
-	actorId: string,
+	actor: { id: string; role: UserRole },
 	reportId: string,
 	input: UpdateOutageReportStatusInput,
 ) => {
+	if (input.status === "REJECTED" && actor.role !== "ADMIN") {
+		throw new AppError(403, "Only an admin can reject outage reports");
+	}
+	if (input.status !== "REJECTED" && actor.role !== "TECHNICIAN") {
+		throw new AppError(403, "Only a technician can update work progress");
+	}
+
 	return prisma.$transaction(async (tx) => {
 		const existingReport = await tx.outageReport.findFirst({
-			where: { id: reportId, deletedAt: null, assignedTechnicianId: actorId },
+			where: {
+				id: reportId,
+				deletedAt: null,
+				assignedTechnicianId:
+					actor.role === "TECHNICIAN" ? actor.id : undefined,
+			},
 			select: { status: true },
 		});
 		if (!existingReport) {
-			throw new AppError(404, "Assigned outage report not found");
+			throw new AppError(404, "Outage report not found");
 		}
 		if (
-			(existingReport.status !== "ASSIGNED" ||
-				input.status !== "IN_PROGRESS") &&
-			(existingReport.status !== "IN_PROGRESS" || input.status !== "RESOLVED")
+			(input.status === "REJECTED" && existingReport.status !== "REPORTED") ||
+			(input.status === "IN_PROGRESS" &&
+				existingReport.status !== "ASSIGNED") ||
+			(input.status === "RESOLVED" && existingReport.status !== "IN_PROGRESS")
 		) {
 			throw new AppError(409, "Invalid outage report status change");
 		}
@@ -221,7 +234,8 @@ const updateStatus = async (
 			where: {
 				id: reportId,
 				deletedAt: null,
-				assignedTechnicianId: actorId,
+				assignedTechnicianId:
+					actor.role === "TECHNICIAN" ? actor.id : undefined,
 				status: existingReport.status,
 			},
 			data:
@@ -231,7 +245,7 @@ const updateStatus = async (
 							resolvedAt: new Date(),
 							resolutionNote: input.resolutionNote,
 						}
-					: { status: "IN_PROGRESS" },
+					: { status: input.status },
 		});
 		if (updated.count === 0) {
 			throw new AppError(409, "Outage report changed; please retry");
@@ -242,7 +256,7 @@ const updateStatus = async (
 		});
 		await tx.auditLog.create({
 			data: {
-				actorId,
+				actorId: actor.id,
 				action: "OUTAGE_REPORT_STATUS_CHANGED",
 				entityType: "OUTAGE_REPORT",
 				entityId: reportId,
@@ -264,3 +278,4 @@ export const OutageReportService = {
 	assign,
 	updateStatus,
 };
+
