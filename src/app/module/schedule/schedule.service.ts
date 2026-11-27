@@ -227,6 +227,12 @@ const updateStatus = async (
 					throw new AppError(409, "Invalid schedule status change");
 				}
 				if (
+					input.status === "IN_PROGRESS" &&
+					existingSchedule.startsAt > new Date()
+				) {
+					throw new AppError(409, "Schedule has not started yet");
+				}
+				if (
 					existingSchedule.status === "PUBLISHED" &&
 					input.status === "COMPLETED" &&
 					existingSchedule.endsAt > new Date()
