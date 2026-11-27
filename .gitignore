@@ -30,3 +30,4 @@ generated/
 .windsurf/
 skills-lock.json
 .vercel
+.env*
