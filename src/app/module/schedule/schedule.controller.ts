@@ -19,10 +19,12 @@ const list = catchAsync(async (req, res) => {
 	const query = listSchedulesSchema.parse(req.query);
 	const result = await ScheduleService.list(query, req.user.role);
 	let resMessage: string;
-	if (result.meta.total > 0) {
-		resMessage = "Schedules retrieved successfully!";
-	} else {
+	if (result.meta.total === 0) {
 		resMessage = "No schedules found according to your searching.";
+	} else if (result.schedules.length === 0) {
+		resMessage = "No schedules found on this page. Try an earlier page.";
+	} else {
+		resMessage = "Schedules retrieved successfully!";
 	}
 	sendResponse({ res, statusCode: 200, message: resMessage, data: result });
 });
