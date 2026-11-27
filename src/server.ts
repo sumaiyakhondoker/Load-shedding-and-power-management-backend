@@ -10,8 +10,11 @@ async function main() {
 		await prisma.$connect();
 		console.log("Connected to the database successfully.");
 
-		await seedAdmin();
-		await seedDemoUsers();
+		if (config.demo_accounts_enabled) {
+			await seedDemoUsers();
+		} else {
+			await seedAdmin();
+		}
 
 		app.listen(PORT, () => {
 			console.log(`Server is running on port: ${PORT}`);

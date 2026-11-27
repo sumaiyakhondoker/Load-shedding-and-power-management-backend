@@ -3,6 +3,7 @@ import { OAuth2Client, type TokenPayload } from "google-auth-library";
 import jwt, { type JwtPayload } from "jsonwebtoken";
 import { z } from "zod";
 import { Prisma } from "../../../../generated/prisma/client";
+import type { UserRole } from "../../../../generated/prisma/enums";
 import config from "../../../config";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../utils/AppError";
@@ -19,6 +20,9 @@ const publicUserFields = {
 const googleClient = new OAuth2Client();
 const googleUserFields = { ...publicUserFields, deletedAt: true } as const;
 const googleProfileSchema = z.object({
+	iss: z.enum(["accounts.google.com", "https://accounts.google.com"]),
+	aud: z.union([z.string(), z.array(z.string())]),
+	exp: z.number().int().positive(),
 	sub: z.string().min(1).max(255),
 	email: z.email().max(255),
 	email_verified: z.literal(true),
@@ -102,7 +106,7 @@ const verifyGoogleProfile = async (idToken: string) => {
 	} catch {
 		throw new AppError(401, "Invalid or expired Google ID token");
 	}
-	if (!payload || payload.exp <= Date.now() / 1000) {
+	if (!payload) {
 		throw new AppError(401, "Invalid or expired Google ID token");
 	}
 
@@ -110,8 +114,17 @@ const verifyGoogleProfile = async (idToken: string) => {
 	if (!profile.success) {
 		throw new AppError(
 			401,
-			"Google account must have a valid ID and verified email",
+			"Google ID token is invalid or email is unverified",
 		);
+	}
+	const audiences = Array.isArray(profile.data.aud)
+		? profile.data.aud
+		: [profile.data.aud];
+	if (
+		profile.data.exp <= Date.now() / 1000 ||
+		!audiences.includes(config.google_client_id)
+	) {
+		throw new AppError(401, "Invalid or expired Google ID token");
 	}
 	const email = profile.data.email.toLowerCase();
 	return {
@@ -195,7 +208,9 @@ const refreshToken = async (token: string | undefined) => {
 
 	let decoded: string | JwtPayload;
 	try {
-		decoded = jwt.verify(token, config.jwt_refresh_secret);
+		decoded = jwt.verify(token, config.jwt_refresh_secret, {
+			algorithms: ["HS256"],
+		});
 	} catch {
 		throw new AppError(401, "Invalid or expired refresh token");
 	}
@@ -221,4 +236,60 @@ const refreshToken = async (token: string | undefined) => {
 	return { accessToken: createAccessToken(user.id, user.role) };
 };
 
-export const AuthService = { register, login, googleLogin, refreshToken };
+const demoLogin = async (role: UserRole) => {
+	if (!config.demo_accounts_enabled) {
+		throw new AppError(404, "Demo sign-in is disabled");
+	}
+	const account = {
+		ADMIN: config.demo_admin,
+		TECHNICIAN: config.demo_technician,
+		CUSTOMER: config.demo_customer,
+	}[role];
+	if (!account.email || !account.password) {
+		throw new AppError(503, "Demo sign-in is not configured");
+	}
+
+	const user = await prisma.user.findUnique({
+		where: { email: account.email },
+		select: { ...publicUserFields, deletedAt: true, passwordHash: true },
+	});
+	if (
+		!user ||
+		user.deletedAt ||
+		user.role !== role ||
+		!user.passwordHash ||
+		!(await bcrypt.compare(account.password, user.passwordHash))
+	) {
+		throw new AppError(503, "Demo account is not available");
+	}
+
+	await prisma.auditLog.create({
+		data: {
+			actorId: user.id,
+			action: "DEMO_LOGIN",
+			entityType: "USER",
+			entityId: user.id,
+			details: { role, authenticationMethod: "DEMO" },
+		},
+	});
+
+	const publicUser = {
+		id: user.id,
+		name: user.name,
+		email: user.email,
+		role: user.role,
+	};
+	return {
+		user: publicUser,
+		accessToken: createAccessToken(user.id, user.role),
+		refreshToken: createRefreshToken(user.id),
+	};
+};
+
+export const AuthService = {
+	register,
+	login,
+	googleLogin,
+	demoLogin,
+	refreshToken,
+};

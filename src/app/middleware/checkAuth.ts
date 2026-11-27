@@ -28,13 +28,20 @@ export const auth = (...allowedRoles: UserRole[]): RequestHandler => {
 
 		let decoded: string | JwtPayload;
 		try {
-			decoded = jwt.verify(token, config.jwt_access_secret);
+			decoded = jwt.verify(token, config.jwt_access_secret, {
+				algorithms: ["HS256"],
+			});
 		} catch {
 			throw new AppError(401, "Invalid or expired token");
 		}
 
 		const userId = typeof decoded === "string" ? undefined : decoded.userId;
-		if (typeof userId !== "string" || !z.uuid().safeParse(userId).success) {
+		const tokenType = typeof decoded === "string" ? undefined : decoded.type;
+		if (
+			(tokenType !== undefined && tokenType !== "access") ||
+			typeof userId !== "string" ||
+			!z.uuid().safeParse(userId).success
+		) {
 			throw new AppError(401, "Invalid or expired token");
 		}
 

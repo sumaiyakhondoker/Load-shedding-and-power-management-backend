@@ -24,12 +24,13 @@ import { DistributionZoneRoutes } from "./app/module/distributionZone/distributi
 import config from "./config";
 
 const app: Application = express();
+const trustedFrontendOrigin = new URL(config.app_url).origin;
 
 app.use(helmet());
 
 app.use(
 	cors({
-		origin: config.app_url,
+		origin: trustedFrontendOrigin,
 		credentials: true,
 		methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
 		allowedHeaders: ["Content-Type", "Authorization", "Idempotency-Key"],

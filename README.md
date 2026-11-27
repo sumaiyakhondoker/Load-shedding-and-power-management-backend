@@ -8,7 +8,7 @@ Copy the names in `.env.example` into `.env`. Supply the existing database, JWT,
 
 Run `pnpm install`, apply the existing Prisma migrations, then `pnpm dev`. For local webhook forwarding, run `stripe login` and `stripe listen --forward-to localhost:5000/api/v1/payments/webhook`. Copy the listener's `whsec_...` value to `.env` and restart the backend. Use a Stripe test card in Checkout; the frontend success redirect alone never marks a payment paid. The verified webhook updates payment status. The cancel redirect only shows the current backend status; an expired Checkout session later becomes `CANCELLED` after its Stripe event.
 
-For a deployed frontend, set `APP_URL` to its exact origin so CORS permits credentialed requests. The current refresh cookie is HTTP-only and secure in production, with `SameSite=Lax`; cross-site frontend and backend domains need a deliberate cookie policy and HTTPS deployment review.
+For a deployed frontend, set `APP_URL` to its exact origin so CORS permits credentialed requests. Browser requests that use refresh or logout must send credentials and the frontend origin. The refresh token is only in an HTTP-only cookie; production uses `SameSite=None; Secure` for the separate Vercel frontend and backend origins, while local development uses `SameSite=Lax`. Refresh and logout reject requests without the exact trusted `Origin`. Browsers that block third-party cookies may not restore a session across separate sites; use a same-origin frontend proxy/BFF in that case. Never copy refresh tokens into browser storage.
 
 ## Payment API
 
@@ -24,7 +24,11 @@ The frontend's `apiPost` call must allow `headers` in its options type and forwa
 
 Public registration always creates CUSTOMER accounts. Admin role changes remain protected. Google sign-in continues to use the existing account linking flow.
 
-The existing admin seed uses `ADMIN_NAME`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD`. For assessment only, set `DEMO_ACCOUNTS_ENABLED=true` in a **non-production** environment with `DEMO_TECHNICIAN_EMAIL`, `DEMO_TECHNICIAN_PASSWORD`, `DEMO_CUSTOMER_EMAIL`, and `DEMO_CUSTOMER_PASSWORD`. Startup creates missing dedicated accounts without changing existing ones. Demo seeding refuses to run in production. Keep all passwords private.
+`POST /api/v1/auth/google` accepts a Google Identity Services ID token as `{ "idToken": "..." }`. It verifies the signature, issuer, audience, expiry, and verified email using `GOOGLE_CLIENT_ID`. New Google accounts are always CUSTOMER accounts; an existing password account can only be linked while authenticated as that same customer.
+
+The regular admin seed uses `ADMIN_NAME`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD`. Demo sign-in is disabled unless `DEMO_ACCOUNTS_ENABLED=true`. When enabled, the application and seed script use `DEMO_DATABASE_URL` instead of `DATABASE_URL`; configure that URL to a separate disposable assessment database, never the live user database. Set all three demo email/password pairs. Use unique assessment accounts and passwords of at least 12 characters. The seeder creates missing accounts and synthetic area, schedule, outage, and payment records; it leaves existing passwords unchanged. Startup/seeding in demo mode does not create the regular admin account. Demo credentials are server-only and are never returned by the API. `POST /api/v1/auth/demo` accepts `{ "role": "ADMIN" | "TECHNICIAN" | "CUSTOMER" }`, has a dedicated rate limit, and records successful demo logins in the audit log.
+
+Required authentication settings are `GOOGLE_CLIENT_ID`, `APP_URL`, `JWT_ACCESS_SECRET`, and `JWT_REFRESH_SECRET`. Demo-only settings are `DEMO_ACCOUNTS_ENABLED=false`, `DEMO_DATABASE_URL`, and `DEMO_ADMIN_EMAIL`, `DEMO_ADMIN_PASSWORD`, `DEMO_TECHNICIAN_EMAIL`, `DEMO_TECHNICIAN_PASSWORD`, `DEMO_CUSTOMER_EMAIL`, and `DEMO_CUSTOMER_PASSWORD`. Never set demo credentials in frontend environment variables or commit them. Enabling demos selects the separate demo database, including in an intentionally isolated production assessment deployment.
 
 ## Verification
 
@@ -32,7 +36,7 @@ Run `pnpm typecheck`, `pnpm lint:check`, `pnpm build`, and `pnpm test:payment`. 
 
 ## Vercel deployment
 
-The repository exports the Express app from `src/index.ts` for Vercel Functions. `src/server.ts` remains the local listener. Vercel should detect Express from the source entry point; do not set a `dist/server.js` build or route override. The production build runs `prisma generate` before `tsup`, so generated Prisma imports are present. Set the project root to this repository and set the framework to Express (or use auto detection). Keep the generated Prisma client and server bundle in the deployment output.
+The repository exports the Express app from `src/index.ts` for Vercel Functions. `src/server.ts` remains the local listener. Deployments must include the generated Prisma client and bundle the app for the Vercel Node runtime; do not route requests to an unbundled `src/app` ESM module. `api/index.ts` is the Vercel function entry point and imports the bundled `dist/app.js`.
 
 Configure every name in `.env.example` in the Vercel project, using production database credentials, strong JWT secrets, the deployed frontend origin for `APP_URL`, and the frontend payment success and cancel URLs. Set `NODE_ENV=production`. Stripe settings remain optional until a payment endpoint is used. Use a pooled PostgreSQL connection string suited to serverless traffic. The Prisma adapter limits each function instance to two connections. Do not run seed or migrations on each function invocation.
 

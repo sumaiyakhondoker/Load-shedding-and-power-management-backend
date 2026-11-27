@@ -16,4 +16,9 @@ export const googleLoginSchema = z.strictObject({
 	idToken: z.string().trim().min(1),
 });
 
+export const demoLoginSchema = z.strictObject({
+	role: z.enum(["ADMIN", "TECHNICIAN", "CUSTOMER"]),
+});
+
 export type GoogleLoginInput = z.infer<typeof googleLoginSchema>;
+export type DemoLoginInput = z.infer<typeof demoLoginSchema>;
