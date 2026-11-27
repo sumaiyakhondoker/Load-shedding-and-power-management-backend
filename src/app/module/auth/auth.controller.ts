@@ -4,6 +4,7 @@ import { catchAsync } from "../../utils/catchAsync";
 import { sendResponse } from "../../utils/sendResponse";
 import type { LoginInput, RegisterInput } from "./auth.interface";
 import { AuthService } from "./auth.service";
+import type { GoogleLoginInput } from "./auth.validation";
 
 const refreshTokenCookieOptions = {
 	httpOnly: true,
@@ -29,10 +30,10 @@ const register = catchAsync(async (req, res) => {
 	});
 });
 
-const login = catchAsync(async (req, res) => {
-	const { refreshToken, ...result } = await AuthService.login(
-		req.body as LoginInput,
-	);
+const sendLoginResponse = (
+	res: Response,
+	{ refreshToken, ...result }: Awaited<ReturnType<typeof AuthService.login>>,
+) => {
 	setRefreshTokenCookie(res, refreshToken);
 	sendResponse({
 		res,
@@ -40,6 +41,15 @@ const login = catchAsync(async (req, res) => {
 		message: "User logged in successfully!",
 		data: result,
 	});
+};
+
+const login = catchAsync(async (req, res) => {
+	sendLoginResponse(res, await AuthService.login(req.body as LoginInput));
+});
+
+const googleLogin = catchAsync(async (req, res) => {
+	const { idToken } = req.body as GoogleLoginInput;
+	sendLoginResponse(res, await AuthService.googleLogin(idToken, req.user?.id));
 });
 
 const refreshToken = catchAsync(async (req, res) => {
@@ -65,11 +75,13 @@ const logout: RequestHandler = (req, res) => {
 export const AuthController: {
 	register: RequestHandler;
 	login: RequestHandler;
+	googleLogin: RequestHandler;
 	refreshToken: RequestHandler;
 	logout: RequestHandler;
 } = {
 	register,
 	login,
+	googleLogin,
 	refreshToken,
 	logout,
 };

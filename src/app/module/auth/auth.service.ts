@@ -1,6 +1,8 @@
 import bcrypt from "bcrypt";
+import { OAuth2Client, type TokenPayload } from "google-auth-library";
 import jwt, { type JwtPayload } from "jsonwebtoken";
 import { z } from "zod";
+import { Prisma } from "../../../../generated/prisma/client";
 import config from "../../../config";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../utils/AppError";
@@ -13,6 +15,14 @@ const publicUserFields = {
 	email: true,
 	role: true,
 } as const;
+
+const googleClient = new OAuth2Client();
+const googleUserFields = { ...publicUserFields, deletedAt: true } as const;
+const googleProfileSchema = z.object({
+	sub: z.string().min(1).max(255),
+	email: z.email().max(255),
+	email_verified: z.literal(true),
+});
 
 const register = async (input: RegisterInput) => {
 	const email = input.email.toLowerCase();
@@ -77,6 +87,104 @@ const login = async (input: LoginInput) => {
 	};
 };
 
+const verifyGoogleProfile = async (idToken: string) => {
+	if (!config.google_client_id) {
+		throw new AppError(503, "Google sign-in is not configured");
+	}
+
+	let payload: TokenPayload | undefined;
+	try {
+		const ticket = await googleClient.verifyIdToken({
+			idToken,
+			audience: config.google_client_id,
+		});
+		payload = ticket.getPayload();
+	} catch {
+		throw new AppError(401, "Invalid or expired Google ID token");
+	}
+	if (!payload || payload.exp <= Date.now() / 1000) {
+		throw new AppError(401, "Invalid or expired Google ID token");
+	}
+
+	const profile = googleProfileSchema.safeParse(payload);
+	if (!profile.success) {
+		throw new AppError(
+			401,
+			"Google account must have a valid ID and verified email",
+		);
+	}
+	const email = profile.data.email.toLowerCase();
+	return {
+		googleId: profile.data.sub,
+		email,
+		name:
+			payload.name?.trim().slice(0, 255) || email.slice(0, email.indexOf("@")),
+	};
+};
+
+const googleLogin = async (idToken: string, accountId?: string) => {
+	const { googleId, email, name } = await verifyGoogleProfile(idToken);
+	const findLinkedUser = () =>
+		prisma.user.findUnique({
+			where: { googleId },
+			select: googleUserFields,
+		});
+
+	let user = await findLinkedUser();
+	if (!user) {
+		try {
+			user = accountId
+				? await prisma.user.update({
+						where: {
+							id: accountId,
+							email,
+							role: "CUSTOMER",
+							AND: { googleId: null },
+							deletedAt: null,
+							passwordHash: { not: null },
+						},
+						data: { googleId },
+						select: googleUserFields,
+					})
+				: await prisma.user.create({
+						data: { email, name, googleId, role: "CUSTOMER" },
+						select: googleUserFields,
+					});
+		} catch (error) {
+			if (
+				!(error instanceof Prisma.PrismaClientKnownRequestError) ||
+				(error.code !== "P2002" && error.code !== "P2025")
+			) {
+				throw error;
+			}
+			// A concurrent request may have already saved the same Google account.
+			user = await findLinkedUser();
+			if (!user) {
+				throw new AppError(
+					409,
+					accountId
+						? "Google account cannot be linked to this user"
+						: "Email is already registered. Use your existing sign-in method",
+				);
+			}
+		}
+	}
+
+	if (user.deletedAt) {
+		throw new AppError(401, "Google sign-in is unavailable for this account");
+	}
+	if (accountId && user.id !== accountId) {
+		throw new AppError(409, "Google account is already linked to another user");
+	}
+
+	const { deletedAt, ...publicUser } = user;
+	return {
+		user: publicUser,
+		accessToken: createAccessToken(user.id, user.role),
+		refreshToken: createRefreshToken(user.id),
+	};
+};
+
 const refreshToken = async (token: string | undefined) => {
 	if (!token) {
 		throw new AppError(401, "Refresh token is required");
@@ -113,4 +221,4 @@ const refreshToken = async (token: string | undefined) => {
 	return { accessToken: createAccessToken(user.id, user.role) };
 };
 
-export const AuthService = { register, login, refreshToken };
+export const AuthService = { register, login, googleLogin, refreshToken };

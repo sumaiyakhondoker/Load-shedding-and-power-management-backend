@@ -15,3 +15,9 @@ export const loginSchema = z.object({
 	email: z.email(),
 	password: z.string().min(1),
 });
+
+export const googleLoginSchema = z.strictObject({
+	idToken: z.string().trim().min(1),
+});
+
+export type GoogleLoginInput = z.infer<typeof googleLoginSchema>;
