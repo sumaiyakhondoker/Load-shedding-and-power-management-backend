@@ -39,11 +39,12 @@ const listUsers = catchAsync(async (req, res) => {
 	const result = await AdminService.listUsers(query);
 
 	let resMessage: string;
-	if (result.meta.total > 0) {
-		// console.log('length: ',result.users.length);
-		resMessage = "Users retrieved successfully!";
-	} else {
+	if (result.meta.total === 0) {
 		resMessage = "No users found according to your searching.";
+	} else if (result.users.length === 0) {
+		resMessage = "No users found on this page. Try an earlier page.";
+	} else {
+		resMessage = "Users retrieved successfully!";
 	}
 	sendResponse({ res, statusCode: 200, message: resMessage, data: result });
 });
