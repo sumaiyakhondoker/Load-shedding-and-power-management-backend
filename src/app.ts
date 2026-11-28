@@ -15,6 +15,7 @@ import {
 	PaymentRoutes,
 	PaymentWebhookRoutes,
 } from "./app/module/payment/payment.route";
+import { TariffRoutes } from "./app/module/tariff/tariff.route";
 import { ScheduleRoutes } from "./app/module/schedule/schedule.route";
 
 import { UserRoutes } from "./app/module/user/user.route";
@@ -67,6 +68,7 @@ app.get("/", (req, res) => {
 
 app.use("/api/v1/auth", AuthRoutes);
 app.use("/api/v1/bills", BillRoutes);
+app.use("/api/v1/tariffs", TariffRoutes);
 app.use("/api/v1/users", UserRoutes);
 app.use("/api/v1/admin", AdminRoutes);
 app.use("/api/v1/distribution-zones", DistributionZoneRoutes);

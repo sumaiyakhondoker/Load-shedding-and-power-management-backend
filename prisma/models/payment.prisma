@@ -12,11 +12,13 @@ model Payment {
   createdAt            DateTime       @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt            DateTime       @updatedAt @map("updated_at") @db.Timestamp(0)
 
-  user         User          @relation(fields: [userId], references: [id])
-  outageReport OutageReport? @relation(fields: [outageReportId], references: [id])
+  user         User             @relation(fields: [userId], references: [id])
+  outageReport OutageReport?    @relation(fields: [outageReportId], references: [id])
   bill         ElectricityBill? @relation(fields: [billId], references: [id])
 
   @@index([userId])
+  @@index([userId, createdAt, id])
+  @@index([createdAt, id])
   @@index([outageReportId])
   @@index([billId])
   @@map("payments")

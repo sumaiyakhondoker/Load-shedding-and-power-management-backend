@@ -2,6 +2,7 @@ model ElectricityBill {
   id                   String     @id @default(uuid()) @db.Uuid
   billNumber           String     @unique @map("bill_number") @db.VarChar(64)
   customerId           String     @map("customer_id") @db.Uuid
+  tariffId             String?    @map("tariff_id") @db.Uuid
   billingMonth         Int        @map("billing_month") @db.SmallInt
   billingYear          Int        @map("billing_year") @db.SmallInt
   previousMeterReading Decimal    @map("previous_meter_reading") @db.Decimal(14, 2)
@@ -17,11 +18,13 @@ model ElectricityBill {
   createdAt            DateTime   @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt            DateTime   @updatedAt @map("updated_at") @db.Timestamp(0)
 
-  customer User      @relation(fields: [customerId], references: [id])
+  customer User               @relation(fields: [customerId], references: [id])
+  tariff   ElectricityTariff? @relation(fields: [tariffId], references: [id], onDelete: Restrict)
   payments Payment[]
 
   @@unique([customerId, billingYear, billingMonth])
   @@index([customerId, status, dueDate])
   @@index([billingYear, billingMonth])
+  @@index([tariffId])
   @@map("electricity_bills")
 }

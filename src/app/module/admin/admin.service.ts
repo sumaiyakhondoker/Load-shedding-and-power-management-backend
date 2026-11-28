@@ -79,38 +79,28 @@ const listAuditLogs = async (query: ListAuditLogsQuery) => {
 	};
 };
 
-const getDashboardStats = async () => {
-	const [
-		totalUsers,
-		totalZones,
-		totalSchedules,
-		totalReports,
-		openReports,
-		resolvedReports,
-	] = await prisma.$transaction([
-		prisma.user.count({ where: { deletedAt: null } }),
-		prisma.distributionZone.count({ where: { deletedAt: null } }),
-		prisma.loadSheddingSchedule.count({ where: { deletedAt: null } }),
-		prisma.outageReport.count({ where: { deletedAt: null } }),
-		prisma.outageReport.count({
-			where: {
-				deletedAt: null,
-				status: { in: ["REPORTED", "ASSIGNED", "IN_PROGRESS"] },
-			},
-		}),
-		prisma.outageReport.count({
-			where: { deletedAt: null, status: "RESOLVED" },
-		}),
-	]);
+type DashboardStats = {
+	totalUsers: number;
+	totalZones: number;
+	totalSchedules: number;
+	totalReports: number;
+	openReports: number;
+	resolvedReports: number;
+};
 
-	return {
-		totalUsers,
-		totalZones,
-		totalSchedules,
-		totalReports,
-		openReports,
-		resolvedReports,
-	};
+const getDashboardStats = async () => {
+	const [stats] = await prisma.$queryRaw<[DashboardStats]>`
+		SELECT
+			(SELECT count(*) FROM "users" WHERE "deleted_at" IS NULL)::int AS "totalUsers",
+			(SELECT count(*) FROM "distribution_zones" WHERE "deleted_at" IS NULL)::int AS "totalZones",
+			(SELECT count(*) FROM "load_shedding_schedules" WHERE "deleted_at" IS NULL)::int AS "totalSchedules",
+			count(*)::int AS "totalReports",
+			(count(*) FILTER (WHERE "status" IN ('REPORTED', 'ASSIGNED', 'IN_PROGRESS')))::int AS "openReports",
+			(count(*) FILTER (WHERE "status" = 'RESOLVED'))::int AS "resolvedReports"
+		FROM "outage_reports"
+		WHERE "deleted_at" IS NULL
+	`;
+	return stats;
 };
 
 const updateUserRole = async (

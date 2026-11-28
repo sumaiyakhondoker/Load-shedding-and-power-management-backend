@@ -1,0 +1,13 @@
+model ElectricityTariff {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique @db.VarChar(120)
+  ratePerUnit Decimal  @map("rate_per_unit") @db.Decimal(12, 4)
+  currency    String   @db.VarChar(10)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  bills ElectricityBill[]
+
+  @@map("electricity_tariffs")
+}
