@@ -89,7 +89,6 @@ const ensureDemoUser = async (
 	if (
 		!existing ||
 		existing.role !== role ||
-		existing.name !== `Demo ${role.toLowerCase()}` ||
 		existing.deletedAt ||
 		!existing.passwordHash
 	) {
