@@ -38,7 +38,7 @@ Required authentication settings are `GOOGLE_CLIENT_ID`, `APP_URL`, `JWT_ACCESS_
 
 ## Verification
 
-Run `pnpm typecheck`, `pnpm lint:check`, `pnpm build`, and `pnpm test:payment`. Import `postman/payment.postman_collection.json` to exercise payment requests. A real Checkout and signed webhook check additionally require valid Stripe Test Mode credentials, a running database, and Stripe CLI forwarding.
+Run `pnpm typecheck`, `pnpm lint:check`, and `pnpm build`. Import `postman/payment.postman_collection.json` to exercise payment requests. A real Checkout and signed webhook check additionally require valid Stripe Test Mode credentials, a running database, and Stripe CLI forwarding.
 
 ## Vercel deployment
 

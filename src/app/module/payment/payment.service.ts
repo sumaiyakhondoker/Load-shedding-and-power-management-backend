@@ -24,7 +24,7 @@ const paymentSelect = {
 	purpose: true,
 	createdAt: true,
 	updatedAt: true,
-} as const;
+} satisfies Prisma.PaymentSelect;
 
 const settingsSchema = z.object({
 	secretKey: z.string().startsWith("sk_test_"),
@@ -348,19 +348,22 @@ const getById = async (id: string, viewer: Viewer) => {
 const list = async (query: ListPaymentsQuery, viewer: Viewer) => {
 	const where: Prisma.PaymentWhereInput = {
 		...(viewer.role === "CUSTOMER" ? { userId: viewer.id } : {}),
-		status: query.status,
-		billId: query.billId,
+		...(query.status !== undefined ? { status: query.status } : {}),
+		...(query.billId !== undefined ? { billId: query.billId } : {}),
 	};
-	const [payments, total] = await prisma.$transaction([
-		prisma.payment.findMany({
-			where,
-			select: paymentSelect,
-			orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-			skip: (query.page - 1) * query.limit,
-			take: query.limit,
-		}),
-		prisma.payment.count({ where }),
-	]);
+	const [payments, total] = await prisma.$transaction(
+		[
+			prisma.payment.findMany({
+				where,
+				select: paymentSelect,
+				orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+				skip: (query.page - 1) * query.limit,
+				take: query.limit,
+			}),
+			prisma.payment.count({ where }),
+		],
+		{ isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+	);
 	return {
 		payments,
 		meta: {

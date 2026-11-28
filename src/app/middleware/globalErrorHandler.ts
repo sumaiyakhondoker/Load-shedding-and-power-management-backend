@@ -67,6 +67,15 @@ export const globalErrorHandler: ErrorRequestHandler = (
 		return;
 	}
 
+	console.error("Unhandled request error", {
+		method: req.method,
+		path: req.path,
+		name: error instanceof Error ? error.name : typeof error,
+		...(error instanceof Prisma.PrismaClientKnownRequestError && {
+			code: error.code,
+			model: error.meta?.modelName,
+		}),
+	});
 	res
 		.status(500)
 		.json({ success: false, message: "Internal server error", errors: [] });
