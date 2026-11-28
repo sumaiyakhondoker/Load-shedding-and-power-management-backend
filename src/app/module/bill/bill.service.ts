@@ -231,6 +231,8 @@ const update = async (actorId: string, id: string, input: UpdateBillInput) => {
 			const tariff = input.tariffId
 				? await findActiveTariff(tx, input.tariffId)
 				: null;
+			const tariffId =
+				input.tariffId === undefined ? bill.tariffId : tariff?.id;
 			if (tariff && tariff.currency !== bill.currency)
 				throw new AppError(409, "Tariff currency must match the bill currency");
 			const rate =
@@ -254,7 +256,7 @@ const update = async (actorId: string, id: string, input: UpdateBillInput) => {
 			const updated = await tx.electricityBill.updateMany({
 				where: { id, status: { in: ["UNPAID", "OVERDUE"] } },
 				data: {
-					tariffId: tariff?.id,
+					tariffId,
 					billingMonth: input.billingMonth,
 					billingYear: input.billingYear,
 					issueDate,
