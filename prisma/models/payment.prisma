@@ -2,6 +2,7 @@ model Payment {
   id                   String         @id @default(uuid()) @db.Uuid
   userId               String         @map("user_id") @db.Uuid
   outageReportId       String?        @map("outage_report_id") @db.Uuid
+  billId               String?        @map("bill_id") @db.Uuid
   amount               Decimal        @db.Decimal(12, 2)
   currency             String         @default("BDT") @db.VarChar(10)
   gateway              PaymentGateway @default(STRIPE)
@@ -13,8 +14,10 @@ model Payment {
 
   user         User          @relation(fields: [userId], references: [id])
   outageReport OutageReport? @relation(fields: [outageReportId], references: [id])
+  bill         ElectricityBill? @relation(fields: [billId], references: [id])
 
   @@index([userId])
   @@index([outageReportId])
+  @@index([billId])
   @@map("payments")
 }

@@ -8,6 +8,7 @@ import { notFound } from "./app/middleware/notFound";
 import { AdminRoutes } from "./app/module/admin/admin.route";
 import { AreaRoutes } from "./app/module/area/area.route";
 import { AuthRoutes } from "./app/module/auth/auth.route";
+import { BillRoutes } from "./app/module/bill/bill.route";
 import { FeederRoutes } from "./app/module/feeder/feeder.route";
 import { OutageReportRoutes } from "./app/module/outageReport/outageReport.route";
 import {
@@ -65,6 +66,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/v1/auth", AuthRoutes);
+app.use("/api/v1/bills", BillRoutes);
 app.use("/api/v1/users", UserRoutes);
 app.use("/api/v1/admin", AdminRoutes);
 app.use("/api/v1/distribution-zones", DistributionZoneRoutes);

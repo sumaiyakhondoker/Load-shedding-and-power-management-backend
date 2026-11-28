@@ -1,10 +1,11 @@
 import Stripe from "stripe";
 import { z } from "zod";
-import type { Prisma } from "../../../../generated/prisma/client";
+import { Prisma } from "../../../../generated/prisma/client";
 import type { UserRole } from "../../../../generated/prisma/enums";
 import config from "../../../config";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../utils/AppError";
+import { refreshOverdueBills } from "../bill/bill.service";
 import type {
 	InitiatePaymentInput,
 	ListPaymentsQuery,
@@ -14,6 +15,7 @@ const paymentSelect = {
 	id: true,
 	userId: true,
 	outageReportId: true,
+	billId: true,
 	amount: true,
 	currency: true,
 	gateway: true,
@@ -27,12 +29,6 @@ const paymentSelect = {
 const settingsSchema = z.object({
 	secretKey: z.string().startsWith("sk_test_"),
 	webhookSecret: z.string().startsWith("whsec_"),
-	currency: z.enum(["usd", "bdt"]),
-	amount: z
-		.string()
-		.regex(/^(0|[1-9]\d{0,5})(\.\d{1,2})?$/)
-		.refine((value) => Number(value) > 0),
-	purpose: z.string().trim().min(1).max(255),
 	successUrl: z.url(),
 	cancelUrl: z.url(),
 });
@@ -41,9 +37,6 @@ const getSettings = () => {
 	const result = settingsSchema.safeParse({
 		secretKey: config.stripe_secret_key,
 		webhookSecret: config.stripe_webhook_secret,
-		currency: config.stripe_payment_currency?.toLowerCase(),
-		amount: config.stripe_payment_amount,
-		purpose: config.stripe_payment_purpose,
 		successUrl: config.stripe_success_url,
 		cancelUrl: config.stripe_cancel_url,
 	});
@@ -69,47 +62,52 @@ const initiate = async (
 	input: InitiatePaymentInput,
 ) => {
 	const settings = getSettings();
-	if (input.outageReportId) {
-		const report = await prisma.outageReport.findFirst({
-			where: {
-				id: input.outageReportId,
-				reportedById: userId,
-				deletedAt: null,
-			},
-			select: { id: true },
-		});
-		if (!report) throw new AppError(404, "Outage report not found");
-	}
-
+	await refreshOverdueBills();
 	let payment = await prisma.payment.findUnique({ where: { id: paymentId } });
 	if (!payment) {
 		try {
-			payment = await prisma.payment.create({
-				data: {
-					id: paymentId,
-					userId,
-					outageReportId: input.outageReportId,
-					amount: settings.amount,
-					currency: settings.currency.toUpperCase(),
-					gateway: "STRIPE",
-					status: "PENDING",
-					purpose: settings.purpose,
-				},
+			payment = await prisma.$transaction(async (tx) => {
+				await tx.$queryRaw`SELECT "id" FROM "electricity_bills" WHERE "id" = ${input.billId}::uuid FOR UPDATE`;
+				const bill = await tx.electricityBill.findFirst({
+					where: { id: input.billId, customerId: userId },
+				});
+				if (!bill) throw new AppError(404, "Bill not found");
+				if (bill.status !== "UNPAID" && bill.status !== "OVERDUE")
+					throw new AppError(409, "Bill is not payable");
+				if (
+					await tx.payment.count({
+						where: { billId: bill.id, status: "PENDING" },
+					})
+				)
+					throw new AppError(409, "Bill already has a pending payment");
+				return tx.payment.create({
+					data: {
+						id: paymentId,
+						userId,
+						billId: bill.id,
+						amount: bill.totalAmount,
+						currency: bill.currency,
+						gateway: "STRIPE",
+						status: "PENDING",
+						purpose: `Electricity bill ${bill.billNumber}`,
+					},
+				});
 			});
 		} catch (error) {
 			if (
-				!(error instanceof Error) ||
-				!("code" in error) ||
+				!(error instanceof Prisma.PrismaClientKnownRequestError) ||
 				error.code !== "P2002"
 			)
 				throw error;
 			payment = await prisma.payment.findUnique({ where: { id: paymentId } });
+			if (!payment)
+				throw new AppError(409, "Bill already has a pending payment");
 		}
 	}
 	if (
 		!payment ||
 		payment.userId !== userId ||
-		payment.outageReportId !== (input.outageReportId ?? null)
+		payment.billId !== input.billId
 	) {
 		throw new AppError(
 			409,
@@ -121,6 +119,17 @@ const initiate = async (
 			409,
 			"Payment is no longer pending. Use a new idempotency key",
 		);
+	}
+	const bill = await prisma.electricityBill.findUnique({
+		where: { id: input.billId },
+	});
+	if (
+		!bill ||
+		(bill.status !== "UNPAID" && bill.status !== "OVERDUE") ||
+		!bill.totalAmount.equals(payment.amount) ||
+		bill.currency !== payment.currency
+	) {
+		throw new AppError(409, "Bill changed or is no longer payable");
 	}
 	if (
 		!payment.gatewayTransactionId &&
@@ -184,6 +193,12 @@ const initiate = async (
 		throw error;
 	}
 	if (session.status !== "open" || !session.url) {
+		if (session.status === "expired") {
+			await prisma.payment.updateMany({
+				where: { id: payment.id, status: "PENDING" },
+				data: { status: "CANCELLED" },
+			});
+		}
 		throw new AppError(
 			409,
 			"Checkout session is no longer open. Use a new idempotency key",
@@ -232,12 +247,11 @@ const handleWebhook = async (
 		throw new AppError(400, "Stripe session has no valid payment reference");
 	}
 	const payment = await prisma.payment.findUnique({ where: { id: paymentId } });
-	if (!payment?.gatewayTransactionId) {
-		throw new AppError(409, "Payment session is not ready. Retry the webhook");
-	}
+	if (!payment) throw new AppError(404, "Payment not found");
 	if (
 		payment.gateway !== "STRIPE" ||
-		payment.gatewayTransactionId !== session.id ||
+		(payment.gatewayTransactionId !== null &&
+			payment.gatewayTransactionId !== session.id) ||
 		payment.currency.toLowerCase() !== session.currency ||
 		toMinorUnits(payment.amount.toString()) !== session.amount_total
 	) {
@@ -256,13 +270,66 @@ const handleWebhook = async (
 		status = "CANCELLED";
 	}
 	if (status) {
-		await prisma.payment.updateMany({
-			where: {
-				id: payment.id,
-				gatewayTransactionId: session.id,
-				status: "PENDING",
-			},
-			data: { status },
+		if (!payment.billId) {
+			// Existing pre-billing transactions remain payable and retain their history.
+			await prisma.$transaction(async (tx) => {
+				await tx.payment.updateMany({
+					where: {
+						id: payment.id,
+						gatewayTransactionId: null,
+						status: "PENDING",
+					},
+					data: { gatewayTransactionId: session.id },
+				});
+				await tx.payment.updateMany({
+					where: {
+						id: payment.id,
+						gatewayTransactionId: session.id,
+						status: "PENDING",
+					},
+					data: { status },
+				});
+			});
+			return;
+		}
+		const billId = payment.billId;
+		await prisma.$transaction(async (tx) => {
+			await tx.$queryRaw`SELECT "id" FROM "electricity_bills" WHERE "id" = ${billId}::uuid FOR UPDATE`;
+			await tx.payment.updateMany({
+				where: {
+					id: payment.id,
+					gatewayTransactionId: null,
+					status: "PENDING",
+				},
+				data: { gatewayTransactionId: session.id },
+			});
+			const updated = await tx.payment.updateMany({
+				where: {
+					id: payment.id,
+					gatewayTransactionId: session.id,
+					billId,
+					status: "PENDING",
+				},
+				data: { status },
+			});
+			if (!updated.count) return;
+			if (status === "PAID") {
+				const bill = await tx.electricityBill.updateMany({
+					where: {
+						id: billId,
+						customerId: payment.userId,
+						status: { in: ["UNPAID", "OVERDUE"] },
+						totalAmount: payment.amount,
+						currency: payment.currency,
+					},
+					data: { status: "PAID" },
+				});
+				if (!bill.count)
+					throw new AppError(
+						409,
+						"Bill could not be marked paid; investigate the payment",
+					);
+			}
 		});
 	}
 };
@@ -282,6 +349,7 @@ const list = async (query: ListPaymentsQuery, viewer: Viewer) => {
 	const where: Prisma.PaymentWhereInput = {
 		...(viewer.role === "CUSTOMER" ? { userId: viewer.id } : {}),
 		status: query.status,
+		billId: query.billId,
 	};
 	const [payments, total] = await prisma.$transaction([
 		prisma.payment.findMany({

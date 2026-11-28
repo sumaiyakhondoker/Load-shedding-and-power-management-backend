@@ -1,0 +1,27 @@
+model ElectricityBill {
+  id                   String     @id @default(uuid()) @db.Uuid
+  billNumber           String     @unique @map("bill_number") @db.VarChar(64)
+  customerId           String     @map("customer_id") @db.Uuid
+  billingMonth         Int        @map("billing_month") @db.SmallInt
+  billingYear          Int        @map("billing_year") @db.SmallInt
+  previousMeterReading Decimal    @map("previous_meter_reading") @db.Decimal(14, 2)
+  currentMeterReading  Decimal    @map("current_meter_reading") @db.Decimal(14, 2)
+  consumedUnits        Decimal    @map("consumed_units") @db.Decimal(14, 2)
+  ratePerUnit          Decimal    @map("rate_per_unit") @db.Decimal(12, 4)
+  additionalCharges    Decimal    @default(0) @map("additional_charges") @db.Decimal(12, 2)
+  totalAmount          Decimal    @map("total_amount") @db.Decimal(12, 2)
+  currency             String     @db.VarChar(10)
+  issueDate            DateTime   @map("issue_date") @db.Date
+  dueDate              DateTime   @map("due_date") @db.Date
+  status               BillStatus @default(UNPAID)
+  createdAt            DateTime   @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt            DateTime   @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  customer User      @relation(fields: [customerId], references: [id])
+  payments Payment[]
+
+  @@unique([customerId, billingYear, billingMonth])
+  @@index([customerId, status, dueDate])
+  @@index([billingYear, billingMonth])
+  @@map("electricity_bills")
+}

@@ -4,11 +4,15 @@
     { "key": "baseUrl", "value": "http://localhost:5000" },
     { "key": "customerToken", "value": "" },
     { "key": "adminToken", "value": "" },
+    { "key": "customerId", "value": "" },
     { "key": "paymentId", "value": "" },
+    { "key": "billId", "value": "" },
     { "key": "idempotencyKey", "value": "" }
   ],
   "item": [
-    { "name": "Initiate checkout (customer)", "request": { "method": "POST", "header": [ { "key": "Authorization", "value": "Bearer {{customerToken}}" }, { "key": "Idempotency-Key", "value": "{{idempotencyKey}}" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/v1/payments/initiate" } },
+    { "name": "Create electricity bill (admin)", "request": { "method": "POST", "header": [ { "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\"customerId\":\"{{customerId}}\",\"billingMonth\":11,\"billingYear\":2026,\"previousMeterReading\":\"100.00\",\"currentMeterReading\":\"145.00\",\"ratePerUnit\":\"1.2500\",\"additionalCharges\":\"5.00\",\"issueDate\":\"2026-11-01\",\"dueDate\":\"2026-11-30\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/v1/bills" } },
+    { "name": "My electricity bills (customer)", "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{customerToken}}" } ], "url": "{{baseUrl}}/api/v1/bills/my-bills" } },
+    { "name": "Initiate bill checkout (customer)", "request": { "method": "POST", "header": [ { "key": "Authorization", "value": "Bearer {{customerToken}}" }, { "key": "Idempotency-Key", "value": "{{idempotencyKey}}" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\"billId\":\"{{billId}}\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/v1/payments/initiate" } },
     { "name": "My payments (customer)", "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{customerToken}}" } ], "url": "{{baseUrl}}/api/v1/payments?page=1&limit=10" } },
     { "name": "Payment details (customer)", "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{customerToken}}" } ], "url": "{{baseUrl}}/api/v1/payments/{{paymentId}}" } },
     { "name": "All payments (admin)", "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{adminToken}}" } ], "url": "{{baseUrl}}/api/v1/payments?page=1&limit=10" } },

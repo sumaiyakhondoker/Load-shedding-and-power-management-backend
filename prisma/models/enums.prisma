@@ -40,3 +40,10 @@ enum PaymentStatus {
   CANCELLED
   REFUNDED
 }
+
+enum BillStatus {
+  UNPAID
+  PAID
+  OVERDUE
+  CANCELLED
+}

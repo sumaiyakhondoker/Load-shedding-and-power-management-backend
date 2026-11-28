@@ -103,6 +103,15 @@ test("Stripe payment endpoints", async (t) => {
 	const initiate = (key, body = {}, user = customer) => request("/initiate", {
 		method: "POST", body, headers: { ...auth(user), "idempotency-key": key },
 	});
+	const createBill = async (month, owner = customer) => {
+		const response = await fetch(`http://127.0.0.1:${server.address().port}/api/v1/bills`, {
+			method: "POST", headers: { ...auth(admin), "content-type": "application/json" },
+			body: JSON.stringify({ customerId: owner.id, billingMonth: month, billingYear: 2027, previousMeterReading: "10", currentMeterReading: "11", ratePerUnit: "1.25", additionalCharges: "0", issueDate: "2026-11-01", dueDate: "2028-01-01" }),
+		});
+		assert.equal(response.status, 201);
+		return (await response.json()).data;
+	};
+	const primaryBill = await createBill(1);
 	const webhook = async (session, type, signed = true) => {
 		const payload = JSON.stringify({
 			id: `evt_${randomUUID()}`, object: "event", livemode: false,
@@ -132,12 +141,13 @@ test("Stripe payment endpoints", async (t) => {
 	await t.test("requires customer authentication and rejects client supplied payment fields", async () => {
 		assert.equal((await request("/initiate", { method: "POST", body: {}, headers: { "idempotency-key": randomUUID() } })).status, 401);
 		assert.equal((await initiate(randomUUID(), { amount: "0.01" })).status, 400);
-		assert.equal((await initiate(randomUUID(), { outageReportId: randomUUID() })).status, 404);
-		assert.equal((await initiate(randomUUID(), {}, admin)).status, 403);
+		assert.equal((await initiate(randomUUID(), {})).status, 400);
+		assert.equal((await initiate(randomUUID(), { billId: randomUUID() })).status, 404);
+		assert.equal((await initiate(randomUUID(), { billId: primaryBill.id }, admin)).status, 403);
 	});
 
 	const key = randomUUID();
-	const first = await initiate(key);
+	const first = await initiate(key, { billId: primaryBill.id });
 	await t.test("creates a pending record and reuses the simulated checkout on retry", async () => {
 		assert.equal(first.status, 201);
 		assert.equal(first.data.data.paymentId, key);
@@ -147,9 +157,11 @@ test("Stripe payment endpoints", async (t) => {
 		assert.equal(payment.amount.toString(), "1.25");
 		assert.equal(payment.currency, "USD");
 		assert.equal(payment.gatewayTransactionId, first.data.data.sessionId);
-		assert.equal((await initiate(key)).data.data.sessionId, payment.gatewayTransactionId);
+		assert.equal(payment.billId, primaryBill.id);
+		assert.equal((await initiate(key, { billId: primaryBill.id })).data.data.sessionId, payment.gatewayTransactionId);
 		assert.equal(createCalls, 1);
-		assert.equal((await initiate(key, {}, other)).status, 409);
+		assert.equal((await initiate(randomUUID(), { billId: primaryBill.id })).status, 409);
+		assert.equal((await initiate(key, { billId: primaryBill.id }, other)).status, 409);
 	});
 	await t.test("enforces ownership and admin visibility", async () => {
 		assert.equal((await request(`/${key}`, { headers: auth(other) })).status, 404);
@@ -167,22 +179,28 @@ test("Stripe payment endpoints", async (t) => {
 		assert.equal((await webhook(session, "checkout.session.completed")).status, 200);
 		assert.equal((await webhook(session, "checkout.session.completed")).status, 200);
 		assert.equal((await prisma.payment.findUniqueOrThrow({ where: { id: key } })).status, "PAID");
+		assert.equal((await prisma.electricityBill.findUniqueOrThrow({ where: { id: primaryBill.id } })).status, "PAID");
 		assert.equal((await webhook(session, "checkout.session.expired")).status, 200);
 		assert.equal((await prisma.payment.findUniqueOrThrow({ where: { id: key } })).status, "PAID");
 	});
 	await t.test("expiration marks only the matching pending payment cancelled", async () => {
 		const secondKey = randomUUID();
-		assert.equal((await initiate(secondKey)).status, 201);
+		const bill = await createBill(2);
+		assert.equal((await initiate(secondKey, { billId: bill.id })).status, 201);
 		const session = { ...sessions.get(secondKey), status: "expired" };
 		assert.equal((await webhook(session, "checkout.session.expired")).status, 200);
 		assert.equal((await prisma.payment.findUniqueOrThrow({ where: { id: secondKey } })).status, "CANCELLED");
+		assert.equal((await prisma.electricityBill.findUniqueOrThrow({ where: { id: bill.id } })).status, "UNPAID");
+		assert.equal((await initiate(randomUUID(), { billId: bill.id })).status, 201);
 	});
 	await t.test("asynchronous failure is recorded and redirects do not change payment status", async () => {
 		const failedKey = randomUUID();
-		assert.equal((await initiate(failedKey)).status, 201);
+		const bill = await createBill(3);
+		assert.equal((await initiate(failedKey, { billId: bill.id })).status, 201);
 		const failedSession = { ...sessions.get(failedKey), status: "complete" };
 		assert.equal((await webhook(failedSession, "checkout.session.async_payment_failed")).status, 200);
 		assert.equal((await prisma.payment.findUniqueOrThrow({ where: { id: failedKey } })).status, "FAILED");
+		assert.equal((await prisma.electricityBill.findUniqueOrThrow({ where: { id: bill.id } })).status, "UNPAID");
 		for (const path of ["/payment/success", "/payment/cancel"]) {
 			const response = await fetch(`http://127.0.0.1:${server.address().port}${path}?session_id=${failedSession.id}`);
 			assert.equal(response.status, 404);
@@ -202,10 +220,8 @@ test("Stripe payment endpoints", async (t) => {
 		assert.equal(reportResponse.status, 201);
 		const report = (await reportResponse.json()).data;
 		assert.equal((await prisma.payment.count({ where: { userId: customer.id, outageReportId: report.id } })), 0);
-		assert.equal((await initiate(randomUUID(), { outageReportId: report.id }, other)).status, 404);
-		const linkedKey = randomUUID();
-		assert.equal((await initiate(linkedKey, { outageReportId: report.id })).status, 201);
-		assert.equal((await prisma.payment.findUniqueOrThrow({ where: { id: linkedKey } })).outageReportId, report.id);
+		assert.equal((await initiate(randomUUID(), { outageReportId: report.id }, other)).status, 400);
+		assert.equal((await initiate(randomUUID(), { outageReportId: report.id })).status, 400);
 		for (const path of ["/api/v1/schedules", "/api/v1/outage-reports"]) {
 			const response = await fetch(`http://127.0.0.1:${server.address().port}${path}`, { headers: auth(customer) });
 			assert.equal(response.status, 200);
@@ -213,10 +229,12 @@ test("Stripe payment endpoints", async (t) => {
 	});
 	await t.test("does not recreate an uncertain checkout after Stripe's retry window", async () => {
 		const oldKey = randomUUID();
+		const bill = await createBill(4);
 		await prisma.payment.create({
 			data: {
 				id: oldKey,
 				userId: customer.id,
+				billId: bill.id,
 				amount: "1.25",
 				currency: "USD",
 				gateway: "STRIPE",
@@ -225,7 +243,66 @@ test("Stripe payment endpoints", async (t) => {
 				createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
 			},
 		});
-		assert.equal((await initiate(oldKey)).status, 409);
+		assert.equal((await initiate(oldKey, { billId: bill.id })).status, 409);
 		assert.equal((await prisma.payment.findUniqueOrThrow({ where: { id: oldKey } })).gatewayTransactionId, null);
+	});
+	await t.test("enforces bill ownership, duplicate periods, status transitions, and server-calculated amounts", async () => {
+		const bill = await createBill(5);
+		assert.equal(bill.consumedUnits, "1");
+		assert.equal(bill.totalAmount, "1.25");
+		const duplicate = await fetch(`http://127.0.0.1:${server.address().port}/api/v1/bills`, {
+			method: "POST", headers: { ...auth(admin), "content-type": "application/json" },
+			body: JSON.stringify({ customerId: customer.id, billingMonth: 5, billingYear: 2027, previousMeterReading: "10", currentMeterReading: "11", ratePerUnit: "1.25", issueDate: "2026-11-01", dueDate: "2028-01-01" }),
+		});
+		assert.equal(duplicate.status, 409);
+		const billUrl = `http://127.0.0.1:${server.address().port}/api/v1/bills`;
+		assert.equal((await fetch(`${billUrl}/${bill.id}`, { headers: auth(other) })).status, 404);
+		assert.equal((await fetch(`${billUrl}/my-bills`, { headers: auth(customer) })).status, 200);
+		const summary = await fetch(`${billUrl}/summary`, { headers: auth(customer) });
+		assert.equal(summary.status, 200);
+		assert.ok(Number((await summary.json()).data.outstandingBalance) >= 1.25);
+		assert.equal((await fetch(`${billUrl}?search=${bill.billNumber}`, { headers: auth(admin) })).status, 200);
+		assert.equal((await fetch(billUrl, { headers: auth(customer) })).status, 403);
+		const update = await fetch(`${billUrl}/${bill.id}`, { method: "PATCH", headers: { ...auth(admin), "content-type": "application/json" }, body: JSON.stringify({ currentMeterReading: "12" }) });
+		assert.equal(update.status, 200);
+		assert.equal((await update.json()).data.totalAmount, "2.5");
+		const cancelled = await fetch(`${billUrl}/${bill.id}/cancel`, { method: "PATCH", headers: auth(admin) });
+		assert.equal(cancelled.status, 200);
+		assert.equal((await initiate(randomUUID(), { billId: bill.id })).status, 409);
+		assert.equal((await fetch(`${billUrl}/${bill.id}`, { method: "PATCH", headers: { ...auth(admin), "content-type": "application/json" }, body: JSON.stringify({ currentMeterReading: "13" }) })).status, 409);
+	});
+	await t.test("allows only one pending checkout per bill", async () => {
+		const bill = await createBill(6);
+		const results = await Promise.all([initiate(randomUUID(), { billId: bill.id }), initiate(randomUUID(), { billId: bill.id })]);
+		assert.deepEqual(results.map((result) => result.status).sort(), [201, 409]);
+		assert.equal(await prisma.payment.count({ where: { billId: bill.id, status: "PENDING" } }), 1);
+	});
+	await t.test("verified webhook recovers a session ID not saved after checkout creation", async () => {
+		const bill = await createBill(7);
+		const key = randomUUID();
+		assert.equal((await initiate(key, { billId: bill.id })).status, 201);
+		await prisma.payment.update({ where: { id: key }, data: { gatewayTransactionId: null } });
+		const session = { ...sessions.get(key), status: "complete", payment_status: "paid" };
+		assert.equal((await webhook(session, "checkout.session.completed")).status, 200);
+		const payment = await prisma.payment.findUniqueOrThrow({ where: { id: key } });
+		assert.equal(payment.gatewayTransactionId, session.id);
+		assert.equal(payment.status, "PAID");
+		assert.equal((await prisma.electricityBill.findUniqueOrThrow({ where: { id: bill.id } })).status, "PAID");
+	});
+	await t.test("identifies overdue bills and prevents edits while checkout is pending", async () => {
+		const billUrl = `http://127.0.0.1:${server.address().port}/api/v1/bills`;
+		const created = await fetch(billUrl, {
+			method: "POST", headers: { ...auth(admin), "content-type": "application/json" },
+			body: JSON.stringify({ customerId: customer.id, billingMonth: 8, billingYear: 2027, previousMeterReading: "4", currentMeterReading: "6", ratePerUnit: "0.75", issueDate: "2026-01-01", dueDate: "2026-02-01" }),
+		});
+		assert.equal(created.status, 201);
+		const bill = (await created.json()).data;
+		assert.equal(bill.status, "OVERDUE");
+		assert.equal((await initiate(randomUUID(), { billId: bill.id })).status, 201);
+		assert.equal((await fetch(`${billUrl}/${bill.id}/cancel`, { method: "PATCH", headers: auth(admin) })).status, 409);
+		assert.equal((await fetch(`${billUrl}/${bill.id}`, { method: "PATCH", headers: { ...auth(admin), "content-type": "application/json" }, body: JSON.stringify({ ratePerUnit: "1.00" }) })).status, 409);
+		const listed = await fetch(`${billUrl}/my-bills?status=OVERDUE`, { headers: auth(customer) });
+		assert.equal(listed.status, 200);
+		assert.ok((await listed.json()).data.bills.some((item) => item.id === bill.id));
 	});
 });

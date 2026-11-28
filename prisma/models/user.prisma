@@ -16,6 +16,7 @@ model User {
   reportedOutages  OutageReport[]         @relation("OutageReporter")
   assignedOutages  OutageReport[]         @relation("AssignedTechnician")
   payments         Payment[]
+  electricityBills ElectricityBill[]
   auditLogs        AuditLog[]
 
   @@index([areaId])
