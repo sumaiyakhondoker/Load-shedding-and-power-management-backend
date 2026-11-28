@@ -1,7 +1,7 @@
 import app from "./app";
-import config from "./config";
 import { prisma } from "./app/lib/prisma";
 import { seedAdmin, seedDemoUsers } from "./app/utils/seed";
+import config from "./config";
 
 async function main() {
 	const PORT = Number(config.port) || 5000;

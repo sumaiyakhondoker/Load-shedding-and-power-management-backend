@@ -1,5 +1,5 @@
-import dotenv from "dotenv";
 import path from "node:path";
+import dotenv from "dotenv";
 
 dotenv.config({ path: path.join(process.cwd(), ".env") });
 
@@ -21,17 +21,10 @@ const demoAccount = (role: "ADMIN" | "TECHNICIAN" | "CUSTOMER") => {
 	return { email, password };
 };
 
-const demoDatabaseUrl = demoAccountsEnabled
-	? required("DEMO_DATABASE_URL")
-	: undefined;
-if (demoDatabaseUrl && demoDatabaseUrl === process.env.DATABASE_URL?.trim()) {
-	throw new Error("DEMO_DATABASE_URL must be separate from DATABASE_URL");
-}
-
 export default {
 	node_env: process.env.NODE_ENV,
 	port: process.env.PORT || "5000",
-	database_url: demoDatabaseUrl ?? required("DATABASE_URL"),
+	database_url: required("DATABASE_URL"),
 	app_url: required("APP_URL"),
 
 	bcrypt_salt_rounds: process.env.BCRYPT_SALT_ROUNDS,
